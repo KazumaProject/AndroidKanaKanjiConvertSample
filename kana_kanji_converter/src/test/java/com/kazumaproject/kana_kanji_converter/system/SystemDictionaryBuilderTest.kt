@@ -2,7 +2,6 @@ package com.kazumaproject.kana_kanji_converter.system
 
 import android.content.Context
 import kotlinx.coroutines.runBlocking
-import org.bouncycastle.util.test.SimpleTest.runTest
 import org.junit.After
 import org.junit.Assert.*
 import org.junit.Before
@@ -206,5 +205,7 @@ class SystemDictionaryBuilderTest {
         println("trie test: ${tailTrie.size()}")
         assertEquals(1025057, tailTrie.size())
     }
+
+
 
 }

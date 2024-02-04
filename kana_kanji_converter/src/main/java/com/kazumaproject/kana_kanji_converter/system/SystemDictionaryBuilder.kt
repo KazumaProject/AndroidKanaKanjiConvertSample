@@ -5,6 +5,7 @@ import com.kazumaproject.kana_kanji_converter.models.DictionaryEntry
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
+import org.trie4j.louds.TailLOUDSTrie
 import org.trie4j.patricia.TailPatriciaTrie
 import java.io.BufferedReader
 import java.io.InputStreamReader
@@ -94,7 +95,7 @@ class SystemDictionaryBuilder (private val context: Context) {
     suspend fun createYomiTrie(
         dictionaries: List<String>,
         singleKanjiFileName: String
-    ): TailPatriciaTrie{
+    ): TailLOUDSTrie{
         val list = groupAllDictionaries(
             dictionaries,
             singleKanjiFileName
@@ -102,7 +103,7 @@ class SystemDictionaryBuilder (private val context: Context) {
         list.forEach {
             tailPatriciaTrie.insert(it.key)
         }
-        return tailPatriciaTrie
+        return TailLOUDSTrie(tailPatriciaTrie)
     }
 
 }
