@@ -111,7 +111,14 @@ class SystemDictionaryBuilderTest {
     }
 
     @Test
-    fun `test readDictionaryFiles`() = runBlocking{
+    fun `Test readSingleKanji`() = runBlocking {
+        val singleKanji = systemDictionaryBuilder
+            .readSingleKanji("single_kanji/single_kanji.tsv")
+        println("test single kanji: $singleKanji")
+    }
+
+    @Test
+    fun `Test readDictionaryFiles`() = runBlocking{
         val allDictionaries = systemDictionaryBuilder.readDictionaryFiles(
             listOf(
                 "dictionaries/dictionary00.txt",
@@ -133,7 +140,30 @@ class SystemDictionaryBuilderTest {
     }
 
     @Test
-    fun `test groupAllDictionaries`() = runBlocking {
+    fun `Test combineSingleKanjiAndDictionaries`() = runBlocking {
+        val list = systemDictionaryBuilder.combineSingleKanjiAndDictionaries(
+            listOf(
+                "dictionaries/dictionary00.txt",
+                "dictionaries/dictionary01.txt",
+                "dictionaries/dictionary02.txt",
+                "dictionaries/dictionary03.txt",
+                "dictionaries/dictionary04.txt",
+                "dictionaries/dictionary05.txt",
+                "dictionaries/dictionary06.txt",
+                "dictionaries/dictionary07.txt",
+                "dictionaries/dictionary08.txt",
+                "dictionaries/dictionary09.txt",
+                "dictionaries/suffix.txt",
+            ),
+            "single_kanji/single_kanji.tsv"
+        )
+        println("combine file: ${list.size}")
+        val expected = 1569110
+        assertEquals(expected, list.size)
+    }
+
+    @Test
+    fun `Test groupAllDictionaries`() = runBlocking {
         val groupedDictionaries = systemDictionaryBuilder.groupAllDictionaries(
             listOf(
                 "dictionaries/dictionary00.txt",
@@ -147,15 +177,16 @@ class SystemDictionaryBuilderTest {
                 "dictionaries/dictionary08.txt",
                 "dictionaries/dictionary09.txt",
                 "dictionaries/suffix.txt",
-            )
+            ),
+            "single_kanji/single_kanji.tsv"
         )
         println("group system dictionaries: ${groupedDictionaries.size}")
-        val expected = 1024713
+        val expected = 1025057
         assertEquals(expected, groupedDictionaries.size)
     }
 
     @Test
-    fun `test createYomiTrie`() = runBlocking {
+    fun `Test createYomiTrie`() = runBlocking {
         val tailTrie = systemDictionaryBuilder.createYomiTrie(
             listOf(
                 "dictionaries/dictionary00.txt",
@@ -169,10 +200,11 @@ class SystemDictionaryBuilderTest {
                 "dictionaries/dictionary08.txt",
                 "dictionaries/dictionary09.txt",
                 "dictionaries/suffix.txt",
-            )
+            ),
+            "single_kanji/single_kanji.tsv"
         )
         println("trie test: ${tailTrie.size()}")
-        assertEquals(1024713, tailTrie.size())
+        assertEquals(1025057, tailTrie.size())
     }
 
 }

@@ -30,23 +30,75 @@ class SystemDictionaryBuilder (private val context: Context) {
 
     suspend fun readDictionaryFiles(dictionaries: List<String>): List<DictionaryEntry> =
         CoroutineScope(Dispatchers.IO).async{
-        val b = mutableListOf<DictionaryEntry>()
+        val tempList = mutableListOf<DictionaryEntry>()
         dictionaries.forEach {  fileName ->
             val list= readSingleDictionaryFile(fileName)
             list.forEach {
-                b.add(it)
+                tempList.add(it)
             }
         }
-        return@async b
+        return@async tempList
     }.await()
 
-    suspend fun groupAllDictionaries(dictionaries: List<String>) =
+    suspend fun readSingleKanji(fileName: String) = CoroutineScope(Dispatchers.IO).async {
+        val reader = BufferedReader(InputStreamReader(context.assets.open(fileName)))
+        val tempList = reader.readLines().map { str1 ->
+            str1.split(",".toRegex()).flatMap { str2 ->
+                str2.split("\\t".toRegex())
+            }
+        }
+        return@async tempList.associate {
+            it[0] to it[1].toList()
+        }
+    }.await()
+
+    private suspend fun convertSingleKanjiToDictionaryEntry(fileName: String) = CoroutineScope(Dispatchers.IO).async{
+        val singleKanjiInMap = readSingleKanji(fileName)
+        val tempList = mutableListOf<DictionaryEntry>()
+        singleKanjiInMap.forEach { entry ->
+            entry.value.forEach { singleKanji ->
+                tempList.add(
+                    DictionaryEntry(
+                        surface = entry.key,
+                        leftID = 1916,
+                        rightID = 1916,
+                        wordCost = 3000,
+                        afterConversion = singleKanji.toString()
+                    )
+                )
+            }
+        }
+        return@async tempList.toList()
+    }.await()
+
+    suspend fun combineSingleKanjiAndDictionaries(
+        dictionaries: List<String>,
+        singleKanjiFileName: String
+    ) = CoroutineScope(Dispatchers.IO).async{
+        val loadedDictionaries = readDictionaryFiles(dictionaries)
+        val singleKanji = convertSingleKanjiToDictionaryEntry(singleKanjiFileName)
+        return@async loadedDictionaries + singleKanji
+    }.await()
+
+    suspend fun groupAllDictionaries(
+        dictionaries: List<String>,
+        singleKanjiFileName: String
+    ) =
         CoroutineScope(Dispatchers.IO).async {
-            return@async readDictionaryFiles(dictionaries).groupBy { it.surface }
+            return@async combineSingleKanjiAndDictionaries(
+                dictionaries,
+                singleKanjiFileName
+            ).groupBy { it.surface }
         }.await()
 
-    suspend fun createYomiTrie(dictionaries: List<String>): TailPatriciaTrie{
-        val list = groupAllDictionaries(dictionaries)
+    suspend fun createYomiTrie(
+        dictionaries: List<String>,
+        singleKanjiFileName: String
+    ): TailPatriciaTrie{
+        val list = groupAllDictionaries(
+            dictionaries,
+            singleKanjiFileName
+        )
         list.forEach {
             tailPatriciaTrie.insert(it.key)
         }
