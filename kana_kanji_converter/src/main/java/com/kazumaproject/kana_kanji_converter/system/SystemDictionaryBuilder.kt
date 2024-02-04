@@ -5,12 +5,15 @@ import com.kazumaproject.kana_kanji_converter.models.DictionaryEntry
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
+import org.trie4j.patricia.TailPatriciaTrie
 import java.io.BufferedReader
 import java.io.InputStreamReader
 
 class SystemDictionaryBuilder (private val context: Context) {
 
-    private suspend fun readSingleDictionaryFile(fileName: String) =
+    private var tailPatriciaTrie: TailPatriciaTrie = TailPatriciaTrie()
+
+    suspend fun readSingleDictionaryFile(fileName: String) =
         CoroutineScope(Dispatchers.IO).async {
         val reader = BufferedReader(InputStreamReader(context.assets.open(fileName)))
         return@async reader.readLines().map {
@@ -36,5 +39,18 @@ class SystemDictionaryBuilder (private val context: Context) {
         }
         return@async b
     }.await()
+
+    suspend fun groupAllDictionaries(dictionaries: List<String>) =
+        CoroutineScope(Dispatchers.IO).async {
+            return@async readDictionaryFiles(dictionaries).groupBy { it.surface }
+        }.await()
+
+    suspend fun createYomiTrie(dictionaries: List<String>): TailPatriciaTrie{
+        val list = groupAllDictionaries(dictionaries)
+        list.forEach {
+            tailPatriciaTrie.insert(it.key)
+        }
+        return tailPatriciaTrie
+    }
 
 }
