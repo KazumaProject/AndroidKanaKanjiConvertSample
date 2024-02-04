@@ -206,6 +206,4 @@ class SystemDictionaryBuilderTest {
         assertEquals(1025057, tailTrie.size())
     }
 
-
-
 }
