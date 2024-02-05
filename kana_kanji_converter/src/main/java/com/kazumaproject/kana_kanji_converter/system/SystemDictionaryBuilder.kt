@@ -11,10 +11,7 @@ import com.kazumaproject.kana_kanji_converter.local.entity.DictionaryDatabaseEnt
 import com.kazumaproject.kana_kanji_converter.model.DictionaryEntry
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.*
 import org.trie4j.louds.TailLOUDSTrie
 import org.trie4j.patricia.TailPatriciaTrie
 import java.io.BufferedReader
@@ -35,7 +32,6 @@ class SystemDictionaryBuilder (private val context: Context) {
         systemDictionaryDatabase = Room
             .databaseBuilder(context,SystemDictionaryDatabase::class.java,"system_dictionary")
             .addTypeConverter(DictionaryDatabaseConverter(moshi))
-            .allowMainThreadQueries()
             .build()
         dictionaryDao = systemDictionaryDatabase.dictionaryDao
     }
@@ -142,7 +138,7 @@ class SystemDictionaryBuilder (private val context: Context) {
     suspend fun createSystemDictionaryDatabaseAndSaveTrie(
         dictionaries: List<String>,
         singleKanjiFileName: String
-    ){
+    ) = CoroutineScope(Dispatchers.IO).launch{
         val yomiTrie = createYomiTrie(
             dictionaries,
             singleKanjiFileName
@@ -151,23 +147,27 @@ class SystemDictionaryBuilder (private val context: Context) {
             dictionaries,
             singleKanjiFileName
         )
-        groupedList.forEach { entry ->
-            val nodeId = yomiTrie.getNodeId(entry.key)
-            val features = entry.value.map {
-                D(
-                    l = it.leftID,
-                    r = it.rightID,
-                    c = it.wordCost,
-                    t = it.afterConversion
+        launch {
+            groupedList.forEach { entry ->
+                val nodeId = yomiTrie.getNodeId(entry.key)
+                val features = entry.value.map {
+                    D(
+                        l = it.leftID,
+                        r = it.rightID,
+                        c = it.wordCost,
+                        t = it.afterConversion
+                    )
+                }
+                val dictionaryDatabaseEntity = DictionaryDatabaseEntity(
+                    nodeId = nodeId,
+                    features = features
                 )
+                withContext(Dispatchers.IO){
+                    dictionaryDao.insertDictionaryEntry(dictionaryDatabaseEntity)
+                    Log.d("insert dictionary entry","$dictionaryDatabaseEntity")
+                }
             }
-            val dictionaryDatabaseEntity = DictionaryDatabaseEntity(
-                nodeId = nodeId,
-                features = features
-            )
-            dictionaryDao.insertDictionaryEntry(dictionaryDatabaseEntity)
-            Log.d("insert dictionary entry","$dictionaryDatabaseEntity")
-        }
+        }.join()
         saveTrieInInternalStorage(yomiTrie,"yomi.dic")
     }
 
