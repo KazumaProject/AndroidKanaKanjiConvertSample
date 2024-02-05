@@ -5,7 +5,6 @@ import androidx.room.Room
 import com.kazumaproject.kana_kanji_converter.local.DictionaryDao
 import com.kazumaproject.kana_kanji_converter.local.DictionaryDatabaseConverter
 import com.kazumaproject.kana_kanji_converter.local.SystemDictionaryDatabase
-import com.kazumaproject.kana_kanji_converter.local.entity.D
 import com.kazumaproject.kana_kanji_converter.local.entity.DictionaryDatabaseEntity
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
