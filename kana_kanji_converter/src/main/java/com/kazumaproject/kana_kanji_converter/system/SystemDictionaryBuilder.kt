@@ -150,7 +150,7 @@ class SystemDictionaryBuilder (private val context: Context) {
         launch {
             groupedList.forEach { entry ->
                 val nodeId = yomiTrie.getNodeId(entry.key)
-                val features = entry.value.map {
+                val dList = entry.value.map {
                     D(
                         l = it.leftID,
                         r = it.rightID,
@@ -160,7 +160,7 @@ class SystemDictionaryBuilder (private val context: Context) {
                 }
                 val dictionaryDatabaseEntity = DictionaryDatabaseEntity(
                     nodeId = nodeId,
-                    features = features
+                    features = dList
                 )
                 withContext(Dispatchers.IO){
                     dictionaryDao.insertDictionaryEntry(dictionaryDatabaseEntity)
