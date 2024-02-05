@@ -1,18 +1,44 @@
 package com.kazumaproject.kana_kanji_converter.system
 
 import android.content.Context
-import com.kazumaproject.kana_kanji_converter.models.DictionaryEntry
+import android.util.Log
+import androidx.room.Room
+import com.kazumaproject.kana_kanji_converter.local.DictionaryDao
+import com.kazumaproject.kana_kanji_converter.local.DictionaryDatabaseConverter
+import com.kazumaproject.kana_kanji_converter.local.SystemDictionaryDatabase
+import com.kazumaproject.kana_kanji_converter.local.entity.D
+import com.kazumaproject.kana_kanji_converter.local.entity.DictionaryDatabaseEntity
+import com.kazumaproject.kana_kanji_converter.model.DictionaryEntry
+import com.squareup.moshi.Moshi
+import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
+import kotlinx.coroutines.withContext
 import org.trie4j.louds.TailLOUDSTrie
 import org.trie4j.patricia.TailPatriciaTrie
 import java.io.BufferedReader
 import java.io.InputStreamReader
+import java.io.ObjectOutputStream
 
 class SystemDictionaryBuilder (private val context: Context) {
 
     private var tailPatriciaTrie: TailPatriciaTrie = TailPatriciaTrie()
+    private var systemDictionaryDatabase: SystemDictionaryDatabase
+    private var dictionaryDao: DictionaryDao
+
+    init{
+        val moshi = Moshi
+            .Builder()
+            .add(KotlinJsonAdapterFactory())
+            .build()
+        systemDictionaryDatabase = Room
+            .databaseBuilder(context,SystemDictionaryDatabase::class.java,"system_dictionary")
+            .addTypeConverter(DictionaryDatabaseConverter(moshi))
+            .allowMainThreadQueries()
+            .build()
+        dictionaryDao = systemDictionaryDatabase.dictionaryDao
+    }
 
     suspend fun readSingleDictionaryFile(fileName: String) =
         CoroutineScope(Dispatchers.IO).async {
@@ -102,8 +128,67 @@ class SystemDictionaryBuilder (private val context: Context) {
         )
         list.forEach {
             tailPatriciaTrie.insert(it.key)
+            Log.d("insert to trie",it.key)
         }
         return TailLOUDSTrie(tailPatriciaTrie)
+    }
+
+    /**
+     *
+     * yomi.dic: data/data/package_name/files/yomi.dic
+     * database files: data/data/package_name/databases/
+     *
+     * **/
+    suspend fun createSystemDictionaryDatabaseAndSaveTrie(
+        dictionaries: List<String>,
+        singleKanjiFileName: String
+    ){
+        val yomiTrie = createYomiTrie(
+            dictionaries,
+            singleKanjiFileName
+        )
+        val groupedList = groupAllDictionaries(
+            dictionaries,
+            singleKanjiFileName
+        )
+        groupedList.forEach { entry ->
+            val nodeId = yomiTrie.getNodeId(entry.key)
+            val features = entry.value.map {
+                D(
+                    l = it.leftID,
+                    r = it.rightID,
+                    c = it.wordCost,
+                    t = it.afterConversion
+                )
+            }
+            val dictionaryDatabaseEntity = DictionaryDatabaseEntity(
+                nodeId = nodeId,
+                features = features
+            )
+            dictionaryDao.insertDictionaryEntry(dictionaryDatabaseEntity)
+            Log.d("insert dictionary entry","$dictionaryDatabaseEntity")
+        }
+        saveTrieInInternalStorage(yomiTrie,"yomi.dic")
+    }
+
+    private suspend fun saveTrieInInternalStorage(
+        yomiTrie: TailLOUDSTrie,
+        outputName: String
+    ){
+        Log.d("yomi.dic","started to create yomi.dic")
+        try {
+            val out = context.openFileOutput(outputName, Context.MODE_PRIVATE)
+            withContext(Dispatchers.IO) {
+                yomiTrie.writeExternal(ObjectOutputStream(out))
+            }
+        }catch (e: Exception){
+            Log.e("system dic",e.stackTraceToString())
+        }
+        Log.d("yomi.dic","finished to create yomi.dic")
+    }
+
+    fun closeSystemDictionaryDatabase(){
+        systemDictionaryDatabase.close()
     }
 
 }

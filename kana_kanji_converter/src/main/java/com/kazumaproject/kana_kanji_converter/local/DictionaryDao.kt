@@ -2,7 +2,6 @@ package com.kazumaproject.kana_kanji_converter.local
 
 import androidx.room.*
 import com.kazumaproject.kana_kanji_converter.local.entity.DictionaryDatabaseEntity
-import com.kazumaproject.kana_kanji_converter.models.DictionaryEntry
 
 @Dao
 interface DictionaryDao {

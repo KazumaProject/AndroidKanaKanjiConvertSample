@@ -1,4 +1,4 @@
-package com.kazumaproject.kana_kanji_converter.models
+package com.kazumaproject.kana_kanji_converter.model
 
 data class DictionaryEntry(
     val surface: String,
