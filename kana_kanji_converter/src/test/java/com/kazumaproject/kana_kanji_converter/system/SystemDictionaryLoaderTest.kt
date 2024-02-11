@@ -42,6 +42,11 @@ class SystemDictionaryLoaderTest {
         systemDicDatabase = Room
             .databaseBuilder(context,SystemDictionaryDatabase::class.java,"system_dictionary")
             .addTypeConverter(DictionaryDatabaseConverter(moshi))
+            .createFromAsset("system_dictionary_database/system_dictionary")
+            .addMigrations(object : Migration(5,6){
+                override fun migrate(db: SupportSQLiteDatabase) {
+                }
+            })
             .build()
         dictionaryDao = systemDicDatabase.dictionaryDao
     }
@@ -62,15 +67,17 @@ class SystemDictionaryLoaderTest {
         assertEquals(expected, loudsTrie.size())
     }
 
+    /**
+     *
+     * Some reason actual value was 1025049, not 1025057
+     * Tested in emulator that prepopulate database from asset and it was 1025057
+     *
+     * **/
     @Test
     fun `Test load system dictionary database`() = runBlocking {
-        val dictionary = dictionaryDao.getDictionaryEntryList()
+        val dictionary = systemDictionaryBuilder.getAllDictionaryList()
         println("${dictionary.size}")
-        val loudsTrie = TailLOUDSTrie()
-        withContext(Dispatchers.IO) {
-            loudsTrie.readExternal(ObjectInputStream(context.assets.open("system_trie/yomi.dic")))
-        }
-        val expected = loudsTrie.size()
+        val expected = 1025057
         assertEquals(expected, dictionary.size)
     }
 

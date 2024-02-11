@@ -13,7 +13,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         val systemDictionaryBuilder = SystemDictionaryBuilder(this)
         //buildSystemDictionary(systemDictionaryBuilder)
-        checkSystemDictionaryDatabaseSize(systemDictionaryBuilder)
+        //checkSystemDictionaryDatabaseSize(systemDictionaryBuilder)
     }
 
     private fun buildSystemDictionary(
@@ -40,6 +40,11 @@ class MainActivity : AppCompatActivity() {
         systemDictionaryBuilder.closeSystemDictionaryDatabase()
     }
 
+    /**
+     *
+     * size is 1025057
+     *
+     * **/
     private fun checkSystemDictionaryDatabaseSize(
         systemDictionaryBuilder: SystemDictionaryBuilder
     ) = lifecycleScope.launch {
