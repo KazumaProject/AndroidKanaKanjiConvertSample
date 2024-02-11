@@ -3,6 +3,8 @@ package com.kazumaproject.kana_kanji_converter.system
 import android.content.Context
 import android.util.Log
 import androidx.room.Room
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.kazumaproject.kana_kanji_converter.local.DictionaryDao
 import com.kazumaproject.kana_kanji_converter.local.DictionaryDatabaseConverter
 import com.kazumaproject.kana_kanji_converter.local.SystemDictionaryDatabase
@@ -32,9 +34,17 @@ class SystemDictionaryBuilder (private val context: Context) {
         systemDictionaryDatabase = Room
             .databaseBuilder(context,SystemDictionaryDatabase::class.java,"system_dictionary")
             .addTypeConverter(DictionaryDatabaseConverter(moshi))
+            .createFromAsset("system_dictionary_database/system_dictionary")
+            .addMigrations(object : Migration(5,6){
+                override fun migrate(db: SupportSQLiteDatabase) {
+                }
+
+            })
             .build()
         dictionaryDao = systemDictionaryDatabase.dictionaryDao
     }
+
+    suspend fun getAllDictionaryList() = dictionaryDao.getDictionaryEntryList()
 
     suspend fun readSingleDictionaryFile(fileName: String) =
         CoroutineScope(Dispatchers.IO).async {
@@ -54,11 +64,10 @@ class SystemDictionaryBuilder (private val context: Context) {
     suspend fun readDictionaryFiles(dictionaries: List<String>): List<DictionaryEntry> =
         CoroutineScope(Dispatchers.IO).async{
         val tempList = mutableListOf<DictionaryEntry>()
-        dictionaries.forEach {  fileName ->
+        for (fileName in dictionaries){
             val list= readSingleDictionaryFile(fileName)
-            list.forEach {
-                tempList.add(it)
-            }
+            for (entry in list) tempList.add(entry)
+
         }
         return@async tempList
     }.await()
@@ -78,14 +87,14 @@ class SystemDictionaryBuilder (private val context: Context) {
     private suspend fun convertSingleKanjiToDictionaryEntry(fileName: String) = CoroutineScope(Dispatchers.IO).async{
         val singleKanjiInMap = readSingleKanji(fileName)
         val tempList = mutableListOf<DictionaryEntry>()
-        singleKanjiInMap.forEach { entry ->
-            entry.value.forEach { singleKanji ->
+        for (entry in singleKanjiInMap){
+            for (singleKanji in entry.value){
                 tempList.add(
                     DictionaryEntry(
                         surface = entry.key,
                         leftID = 1916,
                         rightID = 1916,
-                        wordCost = 3000,
+                        wordCost = 5000,
                         afterConversion = singleKanji.toString()
                     )
                 )
@@ -122,9 +131,9 @@ class SystemDictionaryBuilder (private val context: Context) {
             dictionaries,
             singleKanjiFileName
         )
-        list.forEach {
-            tailPatriciaTrie.insert(it.key)
-            Log.d("insert to trie",it.key)
+        for (entry in list){
+            tailPatriciaTrie.insert(entry.key)
+            Log.d("insert to trie",entry.key)
         }
         return TailLOUDSTrie(tailPatriciaTrie)
     }
@@ -148,7 +157,7 @@ class SystemDictionaryBuilder (private val context: Context) {
             singleKanjiFileName
         )
         launch {
-            groupedList.forEach { entry ->
+            for (entry in groupedList){
                 val nodeId = yomiTrie.getNodeId(entry.key)
                 val dList = entry.value.map {
                     D(
@@ -162,12 +171,11 @@ class SystemDictionaryBuilder (private val context: Context) {
                     nodeId = nodeId,
                     features = dList
                 )
-                withContext(Dispatchers.IO){
-                    dictionaryDao.insertDictionaryEntry(dictionaryDatabaseEntity)
-                    Log.d("insert dictionary entry","$dictionaryDatabaseEntity")
-                }
+                dictionaryDao.insertDictionaryEntry(dictionaryDatabaseEntity)
+                Log.d("insert dictionary entry","$dictionaryDatabaseEntity")
             }
         }.join()
+        Log.d("dictionary entry size","${dictionaryDao.getDictionaryEntryList().size}")
         saveTrieInInternalStorage(yomiTrie,"yomi.dic")
     }
 

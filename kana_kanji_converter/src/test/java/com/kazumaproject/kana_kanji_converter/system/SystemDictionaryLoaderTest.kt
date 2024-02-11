@@ -9,7 +9,9 @@ import com.kazumaproject.kana_kanji_converter.local.DictionaryDatabaseConverter
 import com.kazumaproject.kana_kanji_converter.local.SystemDictionaryDatabase
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -17,6 +19,9 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
+import org.trie4j.louds.TailLOUDSTrie
+import java.io.ObjectInputStream
+import org.junit.Assert.*
 
 @RunWith(RobolectricTestRunner::class)
 @Config(assetDir = "src/test/assets")
@@ -37,12 +42,6 @@ class SystemDictionaryLoaderTest {
         systemDicDatabase = Room
             .databaseBuilder(context,SystemDictionaryDatabase::class.java,"system_dictionary")
             .addTypeConverter(DictionaryDatabaseConverter(moshi))
-            .createFromAsset("system_dictionary_database/system_dictionary")
-            .addMigrations(object : Migration(5,6){
-                override fun migrate(db: SupportSQLiteDatabase) {
-                }
-
-            })
             .build()
         dictionaryDao = systemDicDatabase.dictionaryDao
     }
@@ -53,9 +52,26 @@ class SystemDictionaryLoaderTest {
     }
 
     @Test
-    fun `Test system dictionary database`() = runBlocking{
-        val list = dictionaryDao.getDictionaryEntryList()
-        println("${list.size}")
+    fun `Test load yomi trie`() = runBlocking {
+        val loudsTrie = TailLOUDSTrie()
+        withContext(Dispatchers.IO) {
+            loudsTrie.readExternal(ObjectInputStream(context.assets.open("system_trie/yomi.dic")))
+        }
+        println("${loudsTrie.size()}")
+        val expected = 1025057
+        assertEquals(expected, loudsTrie.size())
+    }
+
+    @Test
+    fun `Test load system dictionary database`() = runBlocking {
+        val dictionary = dictionaryDao.getDictionaryEntryList()
+        println("${dictionary.size}")
+        val loudsTrie = TailLOUDSTrie()
+        withContext(Dispatchers.IO) {
+            loudsTrie.readExternal(ObjectInputStream(context.assets.open("system_trie/yomi.dic")))
+        }
+        val expected = loudsTrie.size()
+        assertEquals(expected, dictionary.size)
     }
 
 }
