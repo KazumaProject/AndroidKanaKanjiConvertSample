@@ -30,4 +30,7 @@ google-services.json
 *.hprof
 
 # asset
-.src/assets/
+app/src/main/assets/system_dictionary_database/*
+
+kana_kanji_converter/src/test/assets/system_dictionary_database/*
+

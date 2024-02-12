@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.kazumaproject.kana_kanji_converter.local.connection_id.entity.ConnectionID
 import com.kazumaproject.kana_kanji_converter.local.system_dictionary.DictionaryDao
 import com.kazumaproject.kana_kanji_converter.local.system_dictionary.DictionaryDatabaseConverter
 import com.kazumaproject.kana_kanji_converter.local.system_dictionary.SystemDictionaryDatabase
@@ -22,6 +23,8 @@ import org.robolectric.annotation.Config
 import org.trie4j.louds.TailLOUDSTrie
 import java.io.ObjectInputStream
 import org.junit.Assert.*
+import java.io.BufferedReader
+import java.io.InputStreamReader
 
 @RunWith(RobolectricTestRunner::class)
 @Config(assetDir = "src/test/assets")
@@ -67,17 +70,18 @@ class SystemDictionaryLoaderTest {
         assertEquals(expected, loudsTrie.size())
     }
 
-    /**
-     *
-     * Some reason actual value was 1025049 in prepopulate, not 1025057
-     *
-     * **/
     @Test
     fun `Test load system dictionary database`() = runBlocking {
         val dictionary = systemDictionaryBuilder.getAllDictionaryList()
         println("${dictionary.size}")
         val expected = 1025057
         assertEquals(expected, dictionary.size)
+    }
+
+    @Test
+    fun `Test connection id database`() = runBlocking {
+        val connectionIds = systemDictionaryBuilder.getAllConnectionIds()
+        println("${connectionIds.size}")
     }
 
 }

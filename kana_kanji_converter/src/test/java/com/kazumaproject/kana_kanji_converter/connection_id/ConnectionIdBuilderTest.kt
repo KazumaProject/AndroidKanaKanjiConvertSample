@@ -3,18 +3,20 @@ package com.kazumaproject.kana_kanji_converter.connection_id
 import android.content.Context
 import androidx.room.Room
 import com.kazumaproject.kana_kanji_converter.local.connection_id.ConnectionIDDao
-import com.kazumaproject.kana_kanji_converter.local.connection_id.ConnectionIDDatabase
 import com.kazumaproject.kana_kanji_converter.local.connection_id.entity.ConnectionID
-import com.kazumaproject.kana_kanji_converter.system.connection_id.ConnectionIdDatabaseBuilder
+import com.kazumaproject.kana_kanji_converter.local.system_dictionary.DictionaryDatabaseConverter
+import com.kazumaproject.kana_kanji_converter.local.system_dictionary.SystemDictionaryDatabase
+import com.squareup.moshi.Moshi
+import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import kotlinx.coroutines.runBlocking
 import org.junit.After
-import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
-import org.robolectric.annotation.Config
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+import org.robolectric.annotation.Config
 import java.io.BufferedReader
 import java.io.InputStreamReader
 
@@ -22,24 +24,30 @@ import java.io.InputStreamReader
 @Config(assetDir = "src/test/assets")
 class ConnectionIdBuilderTest {
     private lateinit var context: Context
-    private lateinit var connectionIDDatabase: ConnectionIDDatabase
+    private lateinit var systemDictionaryDatabase: SystemDictionaryDatabase
     private lateinit var connectionIDDao: ConnectionIDDao
-    private lateinit var connectionIdDatabaseBuilder: ConnectionIdDatabaseBuilder
 
     @Before
     fun setConnectionIdDatabase(){
         context = RuntimeEnvironment.getApplication()
-        connectionIDDatabase = Room
-            .databaseBuilder(context,ConnectionIDDatabase::class.java,"connection_id_table")
+        val moshi = Moshi
+            .Builder()
+            .add(KotlinJsonAdapterFactory())
             .build()
-        connectionIDDao = connectionIDDatabase.connectionIDDao
-
-        connectionIdDatabaseBuilder = ConnectionIdDatabaseBuilder(context)
+        systemDictionaryDatabase = Room
+            .inMemoryDatabaseBuilder(
+                context,
+                SystemDictionaryDatabase::class.java
+            )
+            .addTypeConverter(DictionaryDatabaseConverter(moshi))
+            .allowMainThreadQueries()
+            .build()
+        connectionIDDao = systemDictionaryDatabase.connectionIDDao
     }
 
     @After
     fun closeConnectionIdDatabase(){
-        connectionIDDatabase.close()
+        systemDictionaryDatabase.close()
     }
 
     @Test
@@ -61,6 +69,6 @@ class ConnectionIdBuilderTest {
 
     @Test
     fun `Test connection id list size from database`() = runBlocking {
-        println("${connectionIdDatabaseBuilder.getConnectionIdList().size}")
+        println("${systemDictionaryDatabase.connectionIDDao.getAllConnectionId().size}")
     }
 }

@@ -5,6 +5,8 @@ import android.util.Log
 import androidx.room.Room
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.kazumaproject.kana_kanji_converter.local.connection_id.ConnectionIDDao
+import com.kazumaproject.kana_kanji_converter.local.connection_id.entity.ConnectionID
 import com.kazumaproject.kana_kanji_converter.local.system_dictionary.DictionaryDao
 import com.kazumaproject.kana_kanji_converter.local.system_dictionary.DictionaryDatabaseConverter
 import com.kazumaproject.kana_kanji_converter.local.system_dictionary.SystemDictionaryDatabase
@@ -25,8 +27,10 @@ class SystemDictionaryBuilder (private val context: Context) {
     private var tailPatriciaTrie: TailPatriciaTrie = TailPatriciaTrie()
     private var systemDictionaryDatabase: SystemDictionaryDatabase
     private var dictionaryDao: DictionaryDao
+    private var connectionIDDao: ConnectionIDDao
     private var systemDictionaryDatabaseForPrepopulate: SystemDictionaryDatabase
     private var dictionaryDaoForPrepopulate: DictionaryDao
+    private var connectionIdDaoForPrepopulate: ConnectionIDDao
 
     init{
         val moshi = Moshi
@@ -36,6 +40,7 @@ class SystemDictionaryBuilder (private val context: Context) {
         systemDictionaryDatabaseForPrepopulate = Room
             .databaseBuilder(context, SystemDictionaryDatabase::class.java,"system_dictionary")
             .addTypeConverter(DictionaryDatabaseConverter(moshi))
+            .fallbackToDestructiveMigration()
             .createFromAsset("system_dictionary_database/system_dictionary")
             .addMigrations(object : Migration(5,6){
                 override fun migrate(db: SupportSQLiteDatabase) {
@@ -44,12 +49,14 @@ class SystemDictionaryBuilder (private val context: Context) {
             })
             .build()
         dictionaryDaoForPrepopulate = systemDictionaryDatabaseForPrepopulate.dictionaryDao
+        connectionIdDaoForPrepopulate = systemDictionaryDatabaseForPrepopulate.connectionIDDao
 
         systemDictionaryDatabase = Room
             .databaseBuilder(context, SystemDictionaryDatabase::class.java,"system_dictionary")
             .addTypeConverter(DictionaryDatabaseConverter(moshi))
             .build()
         dictionaryDao = systemDictionaryDatabase.dictionaryDao
+        connectionIDDao = systemDictionaryDatabase.connectionIDDao
     }
 
     suspend fun getAllDictionaryList() = dictionaryDaoForPrepopulate.getDictionaryEntryList()
@@ -123,8 +130,7 @@ class SystemDictionaryBuilder (private val context: Context) {
     suspend fun groupAllDictionaries(
         dictionaries: List<String>,
         singleKanjiFileName: String
-    ) =
-        CoroutineScope(Dispatchers.IO).async {
+    ) = CoroutineScope(Dispatchers.IO).async {
             return@async combineSingleKanjiAndDictionaries(
                 dictionaries,
                 singleKanjiFileName
@@ -183,6 +189,9 @@ class SystemDictionaryBuilder (private val context: Context) {
             }
             dictionaryDao.insertDictionaryDatabaseEntryList(list)
         }.join()
+
+        buildConnectionIdDatabase().join()
+
         Log.d("dictionary entry size","${dictionaryDao.getDictionaryEntryList().size}")
         saveTrieInInternalStorage(yomiTrie,"yomi.dic")
         val endTime = System.currentTimeMillis()
@@ -208,6 +217,21 @@ class SystemDictionaryBuilder (private val context: Context) {
 
     fun closeSystemDictionaryDatabase(){
         systemDictionaryDatabase.close()
+    }
+
+    suspend fun getAllConnectionIds(): List<ConnectionID> = connectionIdDaoForPrepopulate.getAllConnectionId()
+
+    private suspend fun buildConnectionIdDatabase() = CoroutineScope(Dispatchers.IO).launch {
+        Log.d("build connection ID database","started...")
+        val reader = BufferedReader(InputStreamReader(context.assets.open("connection_id/connection_single_column.txt")))
+        val connectionIdList = reader.readLines().mapIndexed { index, s ->
+            ConnectionID(
+                cID = index,
+                cost = s.toInt()
+            )
+        }
+        connectionIDDao.insertConnectionIdList(connectionIdList)
+        Log.d("build connection ID database","finished...")
     }
 
 }
