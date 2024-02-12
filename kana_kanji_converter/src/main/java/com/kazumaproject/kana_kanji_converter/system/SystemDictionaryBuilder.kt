@@ -5,11 +5,11 @@ import android.util.Log
 import androidx.room.Room
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
-import com.kazumaproject.kana_kanji_converter.local.DictionaryDao
-import com.kazumaproject.kana_kanji_converter.local.DictionaryDatabaseConverter
-import com.kazumaproject.kana_kanji_converter.local.SystemDictionaryDatabase
-import com.kazumaproject.kana_kanji_converter.local.entity.D
-import com.kazumaproject.kana_kanji_converter.local.entity.DictionaryDatabaseEntity
+import com.kazumaproject.kana_kanji_converter.local.system_dictionary.DictionaryDao
+import com.kazumaproject.kana_kanji_converter.local.system_dictionary.DictionaryDatabaseConverter
+import com.kazumaproject.kana_kanji_converter.local.system_dictionary.SystemDictionaryDatabase
+import com.kazumaproject.kana_kanji_converter.local.system_dictionary.entity.D
+import com.kazumaproject.kana_kanji_converter.local.system_dictionary.entity.DictionaryDatabaseEntity
 import com.kazumaproject.kana_kanji_converter.model.DictionaryEntry
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
@@ -25,14 +25,16 @@ class SystemDictionaryBuilder (private val context: Context) {
     private var tailPatriciaTrie: TailPatriciaTrie = TailPatriciaTrie()
     private var systemDictionaryDatabase: SystemDictionaryDatabase
     private var dictionaryDao: DictionaryDao
+    private var systemDictionaryDatabaseForPrepopulate: SystemDictionaryDatabase
+    private var dictionaryDaoForPrepopulate: DictionaryDao
 
     init{
         val moshi = Moshi
             .Builder()
             .add(KotlinJsonAdapterFactory())
             .build()
-        systemDictionaryDatabase = Room
-            .databaseBuilder(context,SystemDictionaryDatabase::class.java,"system_dictionary")
+        systemDictionaryDatabaseForPrepopulate = Room
+            .databaseBuilder(context, SystemDictionaryDatabase::class.java,"system_dictionary")
             .addTypeConverter(DictionaryDatabaseConverter(moshi))
             .createFromAsset("system_dictionary_database/system_dictionary")
             .addMigrations(object : Migration(5,6){
@@ -41,10 +43,16 @@ class SystemDictionaryBuilder (private val context: Context) {
 
             })
             .build()
+        dictionaryDaoForPrepopulate = systemDictionaryDatabaseForPrepopulate.dictionaryDao
+
+        systemDictionaryDatabase = Room
+            .databaseBuilder(context, SystemDictionaryDatabase::class.java,"system_dictionary")
+            .addTypeConverter(DictionaryDatabaseConverter(moshi))
+            .build()
         dictionaryDao = systemDictionaryDatabase.dictionaryDao
     }
 
-    suspend fun getAllDictionaryList() = dictionaryDao.getDictionaryEntryList()
+    suspend fun getAllDictionaryList() = dictionaryDaoForPrepopulate.getDictionaryEntryList()
 
     suspend fun readSingleDictionaryFile(fileName: String) =
         CoroutineScope(Dispatchers.IO).async {

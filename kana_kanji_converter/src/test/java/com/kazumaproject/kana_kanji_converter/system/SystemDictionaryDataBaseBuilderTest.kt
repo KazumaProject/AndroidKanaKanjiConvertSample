@@ -2,11 +2,11 @@ package com.kazumaproject.kana_kanji_converter.system
 
 import android.content.Context
 import androidx.room.Room
-import com.kazumaproject.kana_kanji_converter.local.DictionaryDao
-import com.kazumaproject.kana_kanji_converter.local.DictionaryDatabaseConverter
-import com.kazumaproject.kana_kanji_converter.local.SystemDictionaryDatabase
-import com.kazumaproject.kana_kanji_converter.local.entity.D
-import com.kazumaproject.kana_kanji_converter.local.entity.DictionaryDatabaseEntity
+import com.kazumaproject.kana_kanji_converter.local.system_dictionary.DictionaryDao
+import com.kazumaproject.kana_kanji_converter.local.system_dictionary.DictionaryDatabaseConverter
+import com.kazumaproject.kana_kanji_converter.local.system_dictionary.SystemDictionaryDatabase
+import com.kazumaproject.kana_kanji_converter.local.system_dictionary.entity.D
+import com.kazumaproject.kana_kanji_converter.local.system_dictionary.entity.DictionaryDatabaseEntity
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import kotlinx.coroutines.Dispatchers
@@ -32,7 +32,7 @@ class SystemDictionaryDataBaseBuilderTest {
     private lateinit var systemDictionaryBuilder: SystemDictionaryBuilder
 
     @Before
-    fun  setUpSystemDictionaryDatabase(){
+    fun setUpSystemDictionaryDatabase(){
         context = RuntimeEnvironment.getApplication()
         systemDictionaryBuilder = SystemDictionaryBuilder(context)
         val moshi = Moshi

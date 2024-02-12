@@ -5,15 +5,21 @@ import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.kazumaproject.kana_kanji_converter.system.SystemDictionaryBuilder
+import com.kazumaproject.kana_kanji_converter.system.connection_id.ConnectionIdDatabaseBuilder
 import kotlinx.coroutines.launch
+import java.io.BufferedReader
+import java.io.InputStreamReader
 
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         val systemDictionaryBuilder = SystemDictionaryBuilder(this)
+        val connectionIdDatabaseBuilder = ConnectionIdDatabaseBuilder(this)
         //buildSystemDictionary(systemDictionaryBuilder)
         //checkSystemDictionaryDatabaseSize(systemDictionaryBuilder)
+        //buildConnectionIdDatabase(connectionIdDatabaseBuilder)
+        checkConnectionIdListSize(connectionIdDatabaseBuilder)
     }
 
     private fun buildSystemDictionary(
@@ -49,6 +55,20 @@ class MainActivity : AppCompatActivity() {
         systemDictionaryBuilder: SystemDictionaryBuilder
     ) = lifecycleScope.launch {
         Log.d("system dictionary size","${systemDictionaryBuilder.getAllDictionaryList().size}")
+    }
+
+    private fun buildConnectionIdDatabase(
+        connectionIdDatabaseBuilder: ConnectionIdDatabaseBuilder
+    ) = lifecycleScope.launch {
+        connectionIdDatabaseBuilder.insertConnectionIdFromFile("connection_id/connection_single_column.txt")
+    }
+
+    private fun checkConnectionIdListSize(
+        connectionIdDatabaseBuilder: ConnectionIdDatabaseBuilder
+    ) = lifecycleScope.launch {
+        val reader = BufferedReader(InputStreamReader(assets.open("connection_id/connection_single_column.txt")))
+        val lines = reader.readLines()
+        Log.d("connection id list", "${connectionIdDatabaseBuilder.getConnectionIdList().size} ${lines.size}")
     }
 
 }
