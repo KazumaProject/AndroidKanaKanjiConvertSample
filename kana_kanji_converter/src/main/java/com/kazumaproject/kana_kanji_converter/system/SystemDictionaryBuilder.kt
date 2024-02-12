@@ -156,6 +156,7 @@ class SystemDictionaryBuilder (private val context: Context) {
         dictionaries: List<String>,
         singleKanjiFileName: String
     ) = CoroutineScope(Dispatchers.IO).launch{
+        val startTime = System.currentTimeMillis()
         val yomiTrie = createYomiTrie(
             dictionaries,
             singleKanjiFileName
@@ -165,7 +166,7 @@ class SystemDictionaryBuilder (private val context: Context) {
             singleKanjiFileName
         )
         launch {
-            for (entry in groupedList){
+            val list = groupedList.map { entry ->
                 val nodeId = yomiTrie.getNodeId(entry.key)
                 val dList = entry.value.map {
                     D(
@@ -175,16 +176,18 @@ class SystemDictionaryBuilder (private val context: Context) {
                         t = it.afterConversion
                     )
                 }
-                val dictionaryDatabaseEntity = DictionaryDatabaseEntity(
+                return@map DictionaryDatabaseEntity(
                     nodeId = nodeId,
                     features = dList
                 )
-                dictionaryDao.insertDictionaryEntry(dictionaryDatabaseEntity)
-                Log.d("insert dictionary entry","$dictionaryDatabaseEntity")
             }
+            dictionaryDao.insertDictionaryDatabaseEntryList(list)
         }.join()
         Log.d("dictionary entry size","${dictionaryDao.getDictionaryEntryList().size}")
         saveTrieInInternalStorage(yomiTrie,"yomi.dic")
+        val endTime = System.currentTimeMillis()
+        val elapsedTime = (endTime - startTime) / 1000
+        Log.d("Execution time to build system dictionary","$elapsedTime seconds")
     }
 
     private suspend fun saveTrieInInternalStorage(

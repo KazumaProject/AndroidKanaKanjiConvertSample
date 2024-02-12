@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import com.kazumaproject.kana_kanji_converter.local.connection_id.entity.ConnectionID
 import com.kazumaproject.kana_kanji_converter.system.SystemDictionaryBuilder
 import com.kazumaproject.kana_kanji_converter.system.connection_id.ConnectionIdDatabaseBuilder
 import kotlinx.coroutines.launch
@@ -16,10 +17,10 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         val systemDictionaryBuilder = SystemDictionaryBuilder(this)
         val connectionIdDatabaseBuilder = ConnectionIdDatabaseBuilder(this)
-        //buildSystemDictionary(systemDictionaryBuilder)
+        buildSystemDictionary(systemDictionaryBuilder)
         //checkSystemDictionaryDatabaseSize(systemDictionaryBuilder)
-        //buildConnectionIdDatabase(connectionIdDatabaseBuilder)
-        checkConnectionIdListSize(connectionIdDatabaseBuilder)
+        buildConnectionIdDatabase(connectionIdDatabaseBuilder)
+        //checkConnectionIdListSize(connectionIdDatabaseBuilder)
     }
 
     private fun buildSystemDictionary(
@@ -46,11 +47,6 @@ class MainActivity : AppCompatActivity() {
         systemDictionaryBuilder.closeSystemDictionaryDatabase()
     }
 
-    /**
-     *
-     * size is 1025057
-     *
-     * **/
     private fun checkSystemDictionaryDatabaseSize(
         systemDictionaryBuilder: SystemDictionaryBuilder
     ) = lifecycleScope.launch {
@@ -67,8 +63,20 @@ class MainActivity : AppCompatActivity() {
         connectionIdDatabaseBuilder: ConnectionIdDatabaseBuilder
     ) = lifecycleScope.launch {
         val reader = BufferedReader(InputStreamReader(assets.open("connection_id/connection_single_column.txt")))
-        val lines = reader.readLines()
-        Log.d("connection id list", "${connectionIdDatabaseBuilder.getConnectionIdList().size} ${lines.size}")
+        val lines = reader.readLines().mapIndexed { index, s ->
+            ConnectionID(
+                cID = index,
+                cost = s.toInt()
+            )
+        }
+        val list = connectionIdDatabaseBuilder.getConnectionIdList()
+
+        val sum = lines + list
+        val unCommon = sum.groupBy { it.cID }
+            .filter { it.value.size == 1 }
+            .flatMap { it.value }
+        Log.d("connection id list", "$unCommon")
+
     }
 
 }

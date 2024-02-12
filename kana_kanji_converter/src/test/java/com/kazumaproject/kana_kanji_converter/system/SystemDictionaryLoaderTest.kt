@@ -69,8 +69,7 @@ class SystemDictionaryLoaderTest {
 
     /**
      *
-     * Some reason actual value was 1025049, not 1025057
-     * Tested in emulator that prepopulate database from asset and it was 1025057
+     * Some reason actual value was 1025049 in prepopulate, not 1025057
      *
      * **/
     @Test

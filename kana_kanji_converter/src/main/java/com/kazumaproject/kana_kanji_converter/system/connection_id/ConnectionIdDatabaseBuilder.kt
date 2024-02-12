@@ -33,17 +33,20 @@ class ConnectionIdDatabaseBuilder(val context: Context) {
     private val connectionIdDaoPrepopulate = connectionIdDatabasePrepopulate.connectionIDDao
 
     suspend fun insertConnectionIdFromFile(fileName: String) = CoroutineScope(Dispatchers.IO).launch{
+        Log.d("started to insert connection id list","")
+        val startTime = System.currentTimeMillis()
         val reader = BufferedReader(InputStreamReader(context.assets.open(fileName)))
-        val lines = reader.readLines()
-        for (i in lines.indices){
-            val connectionCost = lines[i].toInt()
-            val connectionID = ConnectionID(
-                cID = i,
-                cost = connectionCost
+        val lines = reader.readLines().mapIndexed { index, s ->
+            ConnectionID(
+                cID = index,
+                cost = s.toInt()
             )
-            Log.d("insert connection id","id: ${connectionID.cID} cost: ${connectionID.cost}")
-            connectionIDDao.insertConnectionID(connectionID)
         }
+        connectionIDDao.insertConnectionIdList(lines)
+        val endTime = System.currentTimeMillis()
+        val elapsedTime = (endTime - startTime) / 1000
+        Log.d("Execution time to build connection id database","$elapsedTime seconds")
+        Log.d("finished to insert connection id list","")
     }
 
     suspend fun getConnectionIdList(): List<ConnectionID> = connectionIdDaoPrepopulate.getAllConnectionId()

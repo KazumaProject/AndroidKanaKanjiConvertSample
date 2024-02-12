@@ -9,6 +9,9 @@ interface DictionaryDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertDictionaryEntry(dictionaryDatabaseEntity: DictionaryDatabaseEntity)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertDictionaryDatabaseEntryList(dictionaryDatabaseEntityList: List<DictionaryDatabaseEntity>)
+
     @Query("SELECT * FROM system_dictionary")
     suspend fun getDictionaryEntryList(): List<DictionaryDatabaseEntity>
 

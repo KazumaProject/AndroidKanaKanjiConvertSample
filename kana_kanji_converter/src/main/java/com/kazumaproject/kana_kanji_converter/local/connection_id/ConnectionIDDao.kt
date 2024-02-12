@@ -10,6 +10,8 @@ import com.kazumaproject.kana_kanji_converter.local.connection_id.entity.Connect
 interface ConnectionIDDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertConnectionID(connectionID: ConnectionID)
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertConnectionIdList(connectionIdList: List<ConnectionID>)
 
     @Query("SELECT * FROM connection_id_table WHERE cID = :cID")
     suspend fun getCostFromConnectionID(cID: Int): ConnectionID
