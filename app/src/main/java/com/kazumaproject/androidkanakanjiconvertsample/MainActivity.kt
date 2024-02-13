@@ -17,7 +17,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         val systemDictionaryBuilder = SystemDictionaryBuilder(this)
         //buildSystemDictionary(systemDictionaryBuilder)
-        checkSystemDictionaryDatabaseSize(systemDictionaryBuilder)
+        //checkSystemDictionaryDatabaseSize(systemDictionaryBuilder)
         checkConnectionIdListSize(systemDictionaryBuilder)
     }
 
@@ -61,6 +61,10 @@ class MainActivity : AppCompatActivity() {
             val reader = BufferedReader(InputStreamReader(this@MainActivity.assets.open("connection_id/connection_single_column.txt")))
             val connectionIdsFromText = reader.readLines()
             Log.d("connection id list", "${list.size} ${connectionIdsFromText.size}")
+            Log.d("connection id list", "${list[10]} ${connectionIdsFromText[10]}\n" +
+                    "${list[100]} ${connectionIdsFromText[100]}\n" +
+                    "${list[1000]} ${connectionIdsFromText[1000]}\n" +
+                    "${list[10000]} ${connectionIdsFromText[10000]}\n")
         }
     }
 

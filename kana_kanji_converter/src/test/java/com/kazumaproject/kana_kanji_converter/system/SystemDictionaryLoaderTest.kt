@@ -82,6 +82,15 @@ class SystemDictionaryLoaderTest {
     fun `Test connection id database`() = runBlocking {
         val connectionIds = systemDictionaryBuilder.getAllConnectionIds()
         println("${connectionIds.size}")
+        val expected = 7086244
+        assertEquals(expected, connectionIds.size)
+    }
+
+    @Test
+    fun `Test connection id database with text data`() = runBlocking {
+        val connectionIdsFromText = systemDictionaryBuilder.getConnectionIdsFromText()
+        println("${connectionIdsFromText.size}")
+        println("${connectionIdsFromText[10]} ${connectionIdsFromText[100]} ${connectionIdsFromText[1000]}")
     }
 
 }

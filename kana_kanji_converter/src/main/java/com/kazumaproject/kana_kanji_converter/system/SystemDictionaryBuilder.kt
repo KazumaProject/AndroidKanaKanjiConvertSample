@@ -234,4 +234,9 @@ class SystemDictionaryBuilder (private val context: Context) {
         Log.d("build connection ID database","finished...")
     }
 
+    fun getConnectionIdsFromText(): List<String> {
+        val reader = BufferedReader(InputStreamReader(context.assets.open("connection_id/connection_single_column.txt")))
+        return reader.readLines()
+    }
+
 }
