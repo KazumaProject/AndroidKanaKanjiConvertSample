@@ -2,9 +2,16 @@ package com.kazumaproject.androidkanakanjiconvertsample
 
 import android.os.Bundle
 import android.util.Log
+import android.widget.ArrayAdapter
+import android.widget.EditText
+import android.widget.ListView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.widget.addTextChangedListener
 import androidx.lifecycle.lifecycleScope
+import com.kazumaproject.kana_kanji_converter.graph.GraphBuilder
 import com.kazumaproject.kana_kanji_converter.system.SystemDictionaryBuilder
+import com.kazumaproject.kana_kanji_converter.system.SystemDictionaryLoader
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -16,9 +23,18 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         val systemDictionaryBuilder = SystemDictionaryBuilder(this)
+        val graphBuilder = GraphBuilder()
+        val systemDictionaryLoader = SystemDictionaryLoader(this)
         //buildSystemDictionary(systemDictionaryBuilder)
         //checkSystemDictionaryDatabaseSize(systemDictionaryBuilder)
-        checkConnectionIdListSize(systemDictionaryBuilder)
+        //checkConnectionIdListSize(systemDictionaryBuilder)
+
+        val listView = findViewById<ListView>(R.id.sample_list_view)
+        val editText = findViewById<EditText>(R.id.sample_edit_text)
+
+        convertHiragana(
+            graphBuilder, systemDictionaryBuilder, systemDictionaryLoader, editText, listView
+        )
     }
 
     private fun buildSystemDictionary(
@@ -66,6 +82,29 @@ class MainActivity : AppCompatActivity() {
                     "${list[1000]} ${connectionIdsFromText[1000]}\n" +
                     "${list[10000]} ${connectionIdsFromText[10000]}\n")
         }
+    }
+
+    private fun convertHiragana(
+        graphBuilder: GraphBuilder,
+        systemDictionaryBuilder: SystemDictionaryBuilder,
+        systemDictionaryLoader: SystemDictionaryLoader,
+        editText: EditText,
+        listView: ListView,
+    ) = lifecycleScope.launch {
+        val yomiTrie = systemDictionaryLoader.loadYomiDic()
+
+        editText.addTextChangedListener {
+            CoroutineScope(Dispatchers.Main).launch {
+                val convertedResultInList = graphBuilder.constructGraphAndGetResult(
+                    queryText = it.toString(),
+                    yomiTrie = yomiTrie,
+                    systemDictionaryBuilder = systemDictionaryBuilder
+                )
+                val adapter = ArrayAdapter(this@MainActivity,android.R.layout.simple_list_item_1,convertedResultInList)
+                listView.adapter = adapter
+            }
+        }
+
     }
 
 }

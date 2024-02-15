@@ -58,4 +58,9 @@ dependencies {
 
     // Trie data structure
     implementation 'com.github.takawitter:trie4j:0.9.10'
+
+    implementation "org.jgrapht:jgrapht-core:1.5.2"
+    implementation "org.jgrapht:jgrapht-ext:1.5.2"
+    implementation "org.jgrapht:jgrapht-demo:1.5.2"
+    implementation "org.jgrapht:jgrapht-io:1.5.2"
 }

@@ -58,7 +58,6 @@ class SystemDictionaryBuilder (private val context: Context) {
         dictionaryDao = systemDictionaryDatabase.dictionaryDao
         connectionIDDao = systemDictionaryDatabase.connectionIDDao
     }
-
     suspend fun getAllDictionaryList() = dictionaryDaoForPrepopulate.getDictionaryEntryList()
 
     suspend fun readSingleDictionaryFile(fileName: String) =
@@ -238,5 +237,9 @@ class SystemDictionaryBuilder (private val context: Context) {
         val reader = BufferedReader(InputStreamReader(context.assets.open("connection_id/connection_single_column.txt")))
         return reader.readLines()
     }
+
+    fun getSystemDictionaryDao(): DictionaryDao = dictionaryDaoForPrepopulate
+
+    fun getConnectionIdDao(): ConnectionIDDao = connectionIdDaoForPrepopulate
 
 }
