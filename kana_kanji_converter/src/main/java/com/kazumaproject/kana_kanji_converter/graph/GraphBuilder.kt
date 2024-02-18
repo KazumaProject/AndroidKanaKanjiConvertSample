@@ -34,7 +34,6 @@ class GraphBuilder {
         val startTime = System.currentTimeMillis()
 
         val dictionaryDao = systemDictionaryBuilder.getSystemDictionaryDao()
-        val connectionIDDao = systemDictionaryBuilder.getConnectionIdDao()
 
         val bos = GraphNode(UUID.randomUUID().toString(),"<BOS>",0,0,0)
         val eos = GraphNode(UUID.randomUUID().toString(),"<EOS>",0,0,0)
@@ -143,43 +142,44 @@ class GraphBuilder {
                 addVertex(bos)
                 addVertex(eos)
 
-                for (i in 0 until nLetterStartListFinal.size){
-                    when(i){
-                        0 ->{}
-                        else ->{
-                            var previous = nLetterEndListFinal[i - 1].sortedBy { it.cost }.distinctBy { it.string }
-                            if (previous.size >= GRAPH_FILTER_AMOUNT) previous = previous.slice(
-                                0 until GRAPH_FILTER_AMOUNT
-                            )
-                            var cur = nLetterStartListFinal[i].sortedBy { it.cost }.distinctBy { it.string }
-                            if (cur.size >= GRAPH_FILTER_AMOUNT) cur = cur.slice(0 until GRAPH_FILTER_AMOUNT)
+                when(queryText.length){
+                    0 ->{}
+                    1 ->{
+                        for (i in 0 until nLetterStartListFinal.size){
+                            when(i){
+                                0 ->{}
+                                else ->{
+                                    val previous = nLetterEndListFinal[i - 1].sortedBy { it.cost }.distinctBy { it.string }
 
-                            val combinations = previous.cartesianProduct(cur)
-                            for (nodePair in combinations){
-                                addVertex(nodePair.first)
-                                Log.d("added first vertex","${nodePair.first.string} ${nodePair.first.cost}")
-                                addVertex(nodePair.second)
-                                Log.d("added second vertex","${nodePair.second.string} ${nodePair.second.cost}")
-                                val cost = when{
-                                    nodePair.first.leftId == 374 ->{
-                                        3000
+                                    val cur = nLetterStartListFinal[i].sortedBy { it.cost }.distinctBy { it.string }
+
+                                    val combinations = previous.cartesianProduct(cur)
+
+                                    for (nodePair in combinations){
+                                        addVertex(nodePair.first)
+                                        Log.d("added first vertex","${nodePair.first.string} ${nodePair.first.cost}")
+                                        addVertex(nodePair.second)
+                                        Log.d("added second vertex","${nodePair.second.string} ${nodePair.second.cost}")
+                                        val cost = when{
+                                            nodePair.first.leftId == 374 ->{
+                                                3000
+                                            }
+                                            nodePair.second.rightId == 143 ->{
+                                                3000
+                                            }
+                                            nodePair.first.leftId == 2586 && nodePair.second.rightId == 374 ||  nodePair.first.leftId == 283 && nodePair.second.rightId == 2586  -> -1500
+                                            nodePair.first.cost >= 5000 -> 100000
+                                            nodePair.second.cost >= 5000 -> 100000
+                                            else ->{
+                                                val cId = nodePair.first.leftId * Constants.TOTAL_ID_SIZE + nodePair.second.rightId
+                                                systemDictionaryBuilder.getConnectionIdsInArrayList()[cId]
+                                            }
+                                        }
+                                        val totalCost = if (cost + nodePair.second.cost < 0) 0 else cost + nodePair.second.cost
+                                        val edge = GraphLine(UUID.randomUUID().toString(),totalCost)
+                                        addEdge(nodePair.first,nodePair.second,edge)
+                                        setEdgeWeight(edge,totalCost.toDouble())
                                     }
-                                    nodePair.second.rightId == 143 ->{
-                                        3000
-                                    }
-                                    nodePair.first.leftId == 2586 && nodePair.second.rightId == 374 ||  nodePair.first.leftId == 283 && nodePair.second.rightId == 2586  -> -1500
-                                    nodePair.first.cost >= 5000 -> 100000
-                                    nodePair.second.cost >= 5000 -> 100000
-                                    else ->{
-                                        val cId = nodePair.first.leftId * Constants.TOTAL_ID_SIZE + nodePair.second.rightId
-                                        connectionIDDao.getCostFromConnectionID(cId).cost
-                                    }
-                                }
-                                val totalCost = if (cost + nodePair.second.cost < 0) 0 else cost + nodePair.second.cost
-                                val edge = GraphLine(UUID.randomUUID().toString(),totalCost)
-                                addEdge(nodePair.first,nodePair.second,edge)
-                                setEdgeWeight(edge,totalCost.toDouble())
-                            }
 
 //                            for (c in cur){
 //                                addVertex(c)
@@ -191,6 +191,8 @@ class GraphBuilder {
 //                                        c.rightId == 143 ->{
 //                                            3000
 //                                        }
+//                                        c.cost >= 5000 -> 100000
+//                                        p.cost >= 5000 -> 100000
 //                                        p.leftId == 2586 && c.rightId == 374 ||  p.leftId == 283 && c.rightId == 2586  -> -1500
 //                                        else ->{
 //                                            connectionIDDao.getCostFromConnectionID(
@@ -210,6 +212,85 @@ class GraphBuilder {
 //                                }
 //
 //                            }
+                                }
+                            }
+                        }
+                    }
+                    else ->{
+                        for (i in 0 until nLetterStartListFinal.size){
+                            when(i){
+                                0 ->{}
+                                else ->{
+                                    var previous = nLetterEndListFinal[i - 1].filter { it.cost < 4500 } .sortedBy { it.cost }.distinctBy { it.string }
+                                    if (previous.size >= GRAPH_FILTER_AMOUNT) previous = previous.slice(
+                                        0 until GRAPH_FILTER_AMOUNT
+                                    )
+                                    var cur = nLetterStartListFinal[i].filter { it.cost < 4500 } .sortedBy { it.cost }.distinctBy { it.string }
+                                    if (cur.size >= GRAPH_FILTER_AMOUNT) cur = cur.slice(0 until GRAPH_FILTER_AMOUNT)
+
+                                    val combinations = previous.cartesianProduct(cur)
+
+                                    for (nodePair in combinations){
+                                        addVertex(nodePair.first)
+                                        Log.d("added first vertex","${nodePair.first.string} ${nodePair.first.cost} ${nodePair.first.leftId}")
+                                        addVertex(nodePair.second)
+                                        Log.d("added second vertex","${nodePair.second.string} ${nodePair.second.cost} ${nodePair.second.rightId}")
+                                        val cost = when{
+                                            nodePair.first.leftId == 374 ->{
+                                                3000
+                                            }
+                                            nodePair.second.rightId == 143 ->{
+                                                3000
+                                            }
+                                            nodePair.first.leftId == 2586 && nodePair.second.rightId == 374 ||  nodePair.first.leftId == 283 && nodePair.second.rightId == 2586  -> -1500
+                                            nodePair.first.cost >= 5000 -> 100000
+                                            nodePair.second.cost >= 5000 -> 100000
+                                            nodePair.first.leftId == 381 || nodePair.second.rightId == 381 -> 8000
+                                            nodePair.first.string == "鯛" || nodePair.second.string == "鯛" -> 1000
+                                            else ->{
+                                                val cId = nodePair.first.leftId * Constants.TOTAL_ID_SIZE + nodePair.second.rightId
+                                                systemDictionaryBuilder.getConnectionIdsInArrayList()[cId]
+                                            }
+                                        }
+                                        val totalCost = if (cost + nodePair.second.cost < 0) 0 else cost + nodePair.second.cost
+                                        val edge = GraphLine(UUID.randomUUID().toString(),totalCost)
+                                        addEdge(nodePair.first,nodePair.second,edge)
+                                        setEdgeWeight(edge,totalCost.toDouble())
+                                    }
+
+//                            for (c in cur){
+//                                addVertex(c)
+//                                for (p in previous){
+//                                    val cost = when{
+//                                        p.leftId == 374 ->{
+//                                            3000
+//                                        }
+//                                        c.rightId == 143 ->{
+//                                            3000
+//                                        }
+//                                        c.cost >= 5000 -> 100000
+//                                        p.cost >= 5000 -> 100000
+//                                        p.leftId == 2586 && c.rightId == 374 ||  p.leftId == 283 && c.rightId == 2586  -> -1500
+//                                        else ->{
+//                                            connectionIDDao.getCostFromConnectionID(
+//                                                p.leftId * Constants.TOTAL_ID_SIZE + c.rightId).cost
+//                                        }
+//                                    }
+//                                    val totalCost = if (cost + c.cost < 0) 0 else cost + c.cost
+//
+//                                    Log.d("insert graph node","${p.string} ${p.cost} ${p.leftId} -- $totalCost --> ${c.string} ${c.cost} ${c.rightId}")
+//
+//                                    addVertex(p)
+//                                    val edge = GraphLine(UUID.randomUUID().toString(),totalCost)
+//                                    if (p != c){
+//                                        addEdge(p,c,edge)
+//                                        setEdgeWeight(edge,edge.cost.toDouble())
+//                                    }
+//                                }
+//
+//                            }
+                                }
+                            }
                         }
                     }
                 }

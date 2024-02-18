@@ -93,4 +93,10 @@ class SystemDictionaryLoaderTest {
         println("${connectionIdsFromText[10]} ${connectionIdsFromText[100]} ${connectionIdsFromText[1000]}")
     }
 
+    @Test
+    fun `test loading connectionId_def`() = runBlocking {
+        val connectionIdsFromConnectionIdDef = systemDictionaryBuilder.getConnectionIdsInShortArray()
+        println(connectionIdsFromConnectionIdDef?.size)
+    }
+
 }

@@ -20,4 +20,5 @@ interface DictionaryDao {
 
     @Query("DELETE FROM system_dictionary WHERE nodeId = :nodeId")
     suspend fun deleteDictionaryEntryByNodeId(nodeId: Int)
+
 }
