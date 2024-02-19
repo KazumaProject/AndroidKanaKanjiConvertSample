@@ -3,15 +3,11 @@ package com.kazumaproject.kana_kanji_converter.system
 import android.content.Context
 import androidx.room.Room
 import com.kazumaproject.kana_kanji_converter.local.system_dictionary.DictionaryDao
-import com.kazumaproject.kana_kanji_converter.local.system_dictionary.DictionaryDatabaseConverter
 import com.kazumaproject.kana_kanji_converter.local.system_dictionary.SystemDictionaryDatabase
-import com.kazumaproject.kana_kanji_converter.local.system_dictionary.entity.D
-import com.kazumaproject.kana_kanji_converter.local.system_dictionary.entity.DictionaryDatabaseEntity
-import com.squareup.moshi.Moshi
-import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
-import kotlinx.coroutines.Dispatchers
+import com.kazumaproject.kana_kanji_converter.local.system_dictionary.entity.Tango
+import com.kazumaproject.kana_kanji_converter.model.TokenEntry
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -19,140 +15,147 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
-import org.trie4j.louds.TailLOUDSTrie
-import java.io.ObjectInputStream
+import com.kazumaproject.trie4j.louds.TailLOUDSTrie
 import org.junit.Assert.*
+import com.kazumaproject.trie4j.patricia.TailPatriciaTrie
+import java.util.UUID
 
 @RunWith(RobolectricTestRunner::class)
 @Config(assetDir = "src/test/assets")
 class SystemDictionaryDataBaseBuilderTest {
     private lateinit var context: Context
-    private lateinit var systemDicDatabase: SystemDictionaryDatabase
-    private lateinit var dictionaryDao: DictionaryDao
     private lateinit var systemDictionaryBuilder: SystemDictionaryBuilder
 
+    private lateinit var systemDicDatabase: SystemDictionaryDatabase
+    private lateinit var dictionaryDao: DictionaryDao
+
     @Before
-    fun setUpSystemDictionaryDatabase(){
+    fun setUpSystemDictionary(){
         context = RuntimeEnvironment.getApplication()
         systemDictionaryBuilder = SystemDictionaryBuilder(context)
-        val moshi = Moshi
-            .Builder()
-            .add(KotlinJsonAdapterFactory())
-            .build()
+
         systemDicDatabase = Room
             .inMemoryDatabaseBuilder(
-            context,
-            SystemDictionaryDatabase::class.java
-        )
-            .addTypeConverter(DictionaryDatabaseConverter(moshi))
+                context,
+                SystemDictionaryDatabase::class.java
+            )
             .allowMainThreadQueries()
             .build()
         dictionaryDao = systemDicDatabase.dictionaryDao
     }
 
     @After
-    fun closeSystemDictionaryDatabase(){
+    fun closeDatabase(){
         systemDicDatabase.close()
     }
 
+    /** 263725 **/
     @Test
-    fun `Test insert dummy system dictionary entry`() = runBlocking {
-        val test = DictionaryDatabaseEntity(1234, listOf())
-        dictionaryDao.insertDictionaryEntry(test)
-        println("${dictionaryDao.getDictionaryEntryList()}")
-    }
-
-    @Test
-    fun `Test insert dictionary00`() = runBlocking {
-        val dictionary00 = systemDictionaryBuilder.groupAllDictionaries(
-            listOf(
-                "dictionaries/dictionary00.txt",
-            ),
-            "single_kanji/single_kanji.tsv"
-        )
-        val loudsTrie = TailLOUDSTrie()
-        withContext(Dispatchers.IO) {
-            loudsTrie.readExternal(ObjectInputStream(context.assets.open("system_trie/yomi.dic")))
-        }
-        dictionary00.forEach { entry ->
-            val nodeId = loudsTrie.getNodeId(entry.key)
-            val dictionaryEntry = DictionaryDatabaseEntity(nodeId,entry.value.map {
-                D(
-                    l = it.leftID,
-                    r = it.rightID,
-                    c = it.wordCost,
-                    t = it.afterConversion
-                )
-            })
-            println("insert: $nodeId ${entry.value}")
-            dictionaryDao.insertDictionaryEntry(dictionaryEntry)
-        }
-        println("${dictionaryDao.getDictionaryEntryList().size} ${dictionary00.size}")
-        val expected = dictionary00.size
-        assertEquals(expected, dictionaryDao.getDictionaryEntryList().size)
-    }
-
-    @Test
-    fun `Test insert dictionary00 and 01`() = runBlocking {
-        val dictionaries = systemDictionaryBuilder.groupAllDictionaries(
+    fun `Test build yomi dic`() = runBlocking{
+        val list = systemDictionaryBuilder.groupAllDictionaries(
             listOf(
                 "dictionaries/dictionary00.txt",
                 "dictionaries/dictionary01.txt",
             ),
             "single_kanji/single_kanji.tsv"
         )
-        val loudsTrie = TailLOUDSTrie()
-        withContext(Dispatchers.IO) {
-            loudsTrie.readExternal(ObjectInputStream(context.assets.open("system_trie/yomi.dic")))
-        }
-        dictionaries.forEach { entry ->
-            val nodeId = loudsTrie.getNodeId(entry.key)
-            val dictionaryEntry = DictionaryDatabaseEntity(nodeId,entry.value.map {
-                D(
-                    l = it.leftID,
-                    r = it.rightID,
-                    c = it.wordCost,
-                    t = it.afterConversion
-                )
-            })
-            println("insert: $nodeId ${entry.value}")
-            dictionaryDao.insertDictionaryEntry(dictionaryEntry)
-        }
-        println("${dictionaryDao.getDictionaryEntryList().size} ${dictionaries.size}")
-        val expected = dictionaries.size
-        assertEquals(expected, dictionaryDao.getDictionaryEntryList().size)
+        val trie = TailPatriciaTrie()
+        launch {
+            list.keys.forEach {
+                trie.insert(it)
+                println("insert: $it")
+            }
+        }.join()
+        val yomiTrie = TailLOUDSTrie(trie)
+        println("${list.size} ${yomiTrie.size()} ${yomiTrie.nodeSize()}")
+        assertEquals(list.size,yomiTrie.size())
     }
 
     @Test
-    fun `Test insert dictionary00,01 and 02`() = runBlocking {
-        val dictionaries = systemDictionaryBuilder.groupAllDictionaries(
+    fun `Test build tango dic`() = runBlocking{
+        val trie = TailPatriciaTrie()
+        val list = systemDictionaryBuilder.groupAllDictionaries(
             listOf(
                 "dictionaries/dictionary00.txt",
                 "dictionaries/dictionary01.txt",
-                "dictionaries/dictionary02.txt",
             ),
             "single_kanji/single_kanji.tsv"
         )
-        val loudsTrie = TailLOUDSTrie()
-        withContext(Dispatchers.IO) {
-            loudsTrie.readExternal(ObjectInputStream(context.assets.open("system_trie/yomi.dic")))
+        val expected = list.flatMap { it.value }.size
+        list.flatMap {
+            it.value.map { v -> v.afterConversion }
+        }.forEachIndexed { index, s ->
+            println("insert: $index $s")
+            trie.insert(s)
         }
-        dictionaries.forEach { entry ->
-            val nodeId = loudsTrie.getNodeId(entry.key)
-            val dictionaryEntry = DictionaryDatabaseEntity(nodeId,entry.value.map {
-                D(
-                    l = it.leftID,
-                    r = it.rightID,
-                    c = it.wordCost,
-                    t = it.afterConversion
-                )
-            })
-            println("insert: $nodeId ${entry.value}")
-            dictionaryDao.insertDictionaryEntry(dictionaryEntry)
+        val tangoTrie = TailLOUDSTrie(trie)
+        println("${list.size} ${list.values.size} ${tangoTrie.nodeSize()} ${tangoTrie.size()} ${trie.nodeSize()} ${trie.size()}")
+        assertEquals(expected,tangoTrie.nodeSize())
+    }
+
+    @Test
+    fun `Test build token def with database`() = runBlocking{
+
+        val list = systemDictionaryBuilder.groupAllDictionaries(
+            listOf(
+                "dictionaries/dictionary00.txt",
+                "dictionaries/dictionary01.txt",
+            ),
+            "single_kanji/single_kanji.tsv"
+        )
+
+        val trie = TailPatriciaTrie()
+        launch {
+            list.keys.forEach {
+                trie.insert(it)
+                println("insert: $it")
+            }
+        }.join()
+        val yomiTrie = TailLOUDSTrie(trie)
+
+        val tokenArray: ArrayList<List<TokenEntry>> = arrayListOf()
+
+        for (i in 0 until yomiTrie.nodeSize()){
+            tokenArray.add(emptyList())
         }
-        println("${dictionaryDao.getDictionaryEntryList().size} ${dictionaries.size}")
-        val expected = dictionaries.size
-        assertEquals(expected, dictionaryDao.getDictionaryEntryList().size)
+
+        launch {
+            list.forEach { entry ->
+                val index = yomiTrie.getNodeId(entry.key)
+                val tokenEntryList: List<TokenEntry> = entry.value.map { dictionaryEntry ->
+                    val id = UUID.randomUUID().toString()
+
+                    launch {
+                        val tango = Tango(
+                            dictionaryEntry.afterConversion,
+                            id
+                        )
+                        dictionaryDao.insertTango(tango)
+                        println("insert tango: $tango")
+                    }.join()
+
+                    return@map TokenEntry(
+                        leftId = dictionaryEntry.leftID.toShort(),
+                        rightId = dictionaryEntry.rightID.toShort(),
+                        cost = dictionaryEntry.wordCost.toShort(),
+                        tangoId = id
+                    )
+                }
+                tokenArray[index] = tokenEntryList
+            }
+        }.join()
+
+
+        println("token array size: ${tokenArray.size}")
+
+        val queryText = "もうしこみまどぐち"
+        val yomiNodeId = yomiTrie.getNodeId(queryText)
+        val tokens = tokenArray[yomiNodeId]
+
+        tokens.forEach { token ->
+            val tangoFromId = dictionaryDao.getTangoListFromTangoId(token.tangoId)
+            println("$tangoFromId")
+        }
     }
 
 }

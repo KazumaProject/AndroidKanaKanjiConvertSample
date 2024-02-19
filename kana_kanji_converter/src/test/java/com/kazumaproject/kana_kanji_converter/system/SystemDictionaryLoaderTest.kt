@@ -1,62 +1,43 @@
 package com.kazumaproject.kana_kanji_converter.system
 
 import android.content.Context
+import android.content.SharedPreferences
+import android.content.SharedPreferences.Editor
 import androidx.room.Room
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
-import com.kazumaproject.kana_kanji_converter.local.connection_id.entity.ConnectionID
 import com.kazumaproject.kana_kanji_converter.local.system_dictionary.DictionaryDao
 import com.kazumaproject.kana_kanji_converter.local.system_dictionary.DictionaryDatabaseConverter
 import com.kazumaproject.kana_kanji_converter.local.system_dictionary.SystemDictionaryDatabase
+import com.kazumaproject.kana_kanji_converter.model.TokenEntry
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
-import org.trie4j.louds.TailLOUDSTrie
+import com.kazumaproject.trie4j.doublearray.TailDoubleArray
+import com.kazumaproject.trie4j.louds.TailLOUDSTrie
+import com.kazumaproject.trie4j.patricia.TailPatriciaTrie
 import java.io.ObjectInputStream
-import org.junit.Assert.*
-import java.io.BufferedReader
-import java.io.InputStreamReader
 
 @RunWith(RobolectricTestRunner::class)
 @Config(assetDir = "src/test/assets")
 class SystemDictionaryLoaderTest {
     private lateinit var context: Context
-    private lateinit var systemDicDatabase: SystemDictionaryDatabase
-    private lateinit var dictionaryDao: DictionaryDao
     private lateinit var systemDictionaryBuilder: SystemDictionaryBuilder
 
     @Before
     fun setUpSystemDictionaryDatabase(){
         context = RuntimeEnvironment.getApplication()
         systemDictionaryBuilder = SystemDictionaryBuilder(context)
-        val moshi = Moshi
-            .Builder()
-            .add(KotlinJsonAdapterFactory())
-            .build()
-        systemDicDatabase = Room
-            .databaseBuilder(context, SystemDictionaryDatabase::class.java,"system_dictionary")
-            .addTypeConverter(DictionaryDatabaseConverter(moshi))
-            .createFromAsset("system_dictionary_database/system_dictionary")
-            .addMigrations(object : Migration(5,6){
-                override fun migrate(db: SupportSQLiteDatabase) {
-                }
-            })
-            .build()
-        dictionaryDao = systemDicDatabase.dictionaryDao
-    }
-
-    @After
-    fun closeSystemDictionaryDatabase(){
-        systemDicDatabase.close()
     }
 
     @Test
@@ -71,6 +52,45 @@ class SystemDictionaryLoaderTest {
     }
 
     @Test
+    fun `Test load tango trie`() = runBlocking {
+        val loudsTrie = TailLOUDSTrie()
+        withContext(Dispatchers.IO) {
+            loudsTrie.readExternal(ObjectInputStream(context.assets.open("system_trie/tango.dic")))
+        }
+        println("${loudsTrie.size()}")
+    }
+
+    @Test
+    fun `Test load token array`() = runBlocking {
+        val tokenArray: ArrayList<TokenEntry>
+        val objectInputStream = ObjectInputStream(context.assets.open("system_trie/token.def"))
+        tokenArray = objectInputStream.readObject() as ArrayList<TokenEntry>
+        println("${tokenArray.size}")
+        println("${tokenArray[500]}")
+    }
+
+    @Test
+    fun `Test query text`() = runBlocking {
+        val yomiTrie = TailLOUDSTrie()
+        withContext(Dispatchers.IO) {
+            yomiTrie.readExternal(ObjectInputStream(context.assets.open("system_trie/yomi.dic")))
+        }
+        val tangoTrie = TailLOUDSTrie()
+        withContext(Dispatchers.IO) {
+            tangoTrie.readExternal(ObjectInputStream(context.assets.open("system_trie/tango.dic")))
+        }
+        val tokenArray: ArrayList<List<TokenEntry>>
+        val objectInputStream = ObjectInputStream(context.assets.open("system_trie/token.def"))
+        tokenArray = objectInputStream.readObject() as ArrayList<List<TokenEntry>>
+        println("${tokenArray.size}")
+        val index = yomiTrie.getNodeId("あいあんと")
+        val tangoIds = tokenArray[index]
+        tangoIds.forEach {
+
+        }
+    }
+
+    @Test
     fun `Test load system dictionary database`() = runBlocking {
         val dictionary = systemDictionaryBuilder.getAllDictionaryList()
         println("${dictionary.size}")
@@ -80,7 +100,7 @@ class SystemDictionaryLoaderTest {
 
     @Test
     fun `Test connection id database`() = runBlocking {
-        val connectionIds = systemDictionaryBuilder.getAllConnectionIds()
+        val connectionIds = systemDictionaryBuilder.readConnectionIdsFromBinaryFile()
         println("${connectionIds.size}")
         val expected = 7086244
         assertEquals(expected, connectionIds.size)
@@ -94,9 +114,12 @@ class SystemDictionaryLoaderTest {
     }
 
     @Test
-    fun `test loading connectionId_def`() = runBlocking {
-        val connectionIdsFromConnectionIdDef = systemDictionaryBuilder.getConnectionIdsInShortArray()
-        println(connectionIdsFromConnectionIdDef?.size)
+    fun `Test trie`() = runBlocking {
+        val trie = TailPatriciaTrie()
+        trie.insert("かれー")
+        val loudsTrie = TailLOUDSTrie(trie)
+        val nodeId = loudsTrie.getNodeId("かれー")
+        println(loudsTrie.LOUDSNode(nodeId).letters.joinToString().replace(",","").replace(" ",""))
     }
 
 }

@@ -35,22 +35,27 @@ class MainActivity : AppCompatActivity() {
 
         val listView = findViewById<ListView>(R.id.sample_list_view)
         val editText = findViewById<EditText>(R.id.sample_edit_text)
+//        Log.d("Loading connectionIds","loading...")
+//        val connectionIds = systemDictionaryBuilder.getConnectionIds()
+//        Log.d("Loading connectionIds","finished... ${connectionIds.size}")
+//
+//        editText.addTextChangedListener {
+//
+//            convertHiraganaToKanjiJob?.cancel()
+//
+//            convertHiraganaToKanjiJob = lifecycleScope.launch {
+//                val yomiTrie = systemDictionaryLoader.loadYomiDic()
+//                val convertedResultInList = graphBuilder.constructGraphAndGetResult(
+//                    queryText = it.toString(),
+//                    yomiTrie = yomiTrie,
+//                    systemDictionaryBuilder = systemDictionaryBuilder,
+//                    connectionIds
+//                )
+//                adapter = ArrayAdapter(this@MainActivity,android.R.layout.simple_list_item_1,convertedResultInList)
+//                listView.adapter = adapter
+//            }
+//        }
 
-        editText.addTextChangedListener {
-
-            convertHiraganaToKanjiJob?.cancel()
-
-            convertHiraganaToKanjiJob = lifecycleScope.launch {
-                val yomiTrie = systemDictionaryLoader.loadYomiDic()
-                val convertedResultInList = graphBuilder.constructGraphAndGetResult(
-                    queryText = it.toString(),
-                    yomiTrie = yomiTrie,
-                    systemDictionaryBuilder = systemDictionaryBuilder
-                )
-                adapter = ArrayAdapter(this@MainActivity,android.R.layout.simple_list_item_1,convertedResultInList)
-                listView.adapter = adapter
-            }
-        }
     }
 
     private fun buildSystemDictionary(
@@ -88,7 +93,7 @@ class MainActivity : AppCompatActivity() {
     private fun checkConnectionIdListSize(
         systemDictionaryBuilder: SystemDictionaryBuilder
     ) = lifecycleScope.launch {
-        val connectionIds = systemDictionaryBuilder.getConnectionIdsInArrayList()
+        val connectionIds = systemDictionaryBuilder.getConnectionIds()
         println("${connectionIds.size}")
     }
 

@@ -4,5 +4,5 @@ data class D(
     val l: Int,
     val r: Int,
     val c: Int,
-    val t: String
+    val s: Int
 )

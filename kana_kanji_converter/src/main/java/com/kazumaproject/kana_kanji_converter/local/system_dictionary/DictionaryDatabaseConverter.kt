@@ -11,14 +11,14 @@ class DictionaryDatabaseConverter(
     private val moshi: Moshi
 ) {
     @TypeConverter
-    fun stringToDictionary(json: String): List<D> {
-        val listType = Types.newParameterizedType(List::class.java, D::class.java)
-        return moshi.adapter<List<D>>(listType).fromJson(json) ?: emptyList()
+    fun stringToDictionary(json: String): List<String> {
+        val listType = Types.newParameterizedType(List::class.java, String::class.java)
+        return moshi.adapter<List<String>>(listType).fromJson(json) ?: emptyList()
     }
 
     @TypeConverter
-    fun dictionaryToString(attendees: List<D>): String {
+    fun dictionaryToString(attendees: List<String>): String {
         val listType = Types.newParameterizedType(List::class.java, D::class.java)
-        return moshi.adapter<List<D>>(listType).toJson(attendees)
+        return moshi.adapter<List<String>>(listType).toJson(attendees)
     }
 }

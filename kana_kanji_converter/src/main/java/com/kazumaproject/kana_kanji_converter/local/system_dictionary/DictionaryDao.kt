@@ -1,24 +1,28 @@
 package com.kazumaproject.kana_kanji_converter.local.system_dictionary
 
-import androidx.room.*
-import com.kazumaproject.kana_kanji_converter.local.system_dictionary.entity.DictionaryDatabaseEntity
+import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
+import com.kazumaproject.kana_kanji_converter.local.system_dictionary.entity.Tango
 
 @Dao
 interface DictionaryDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertDictionaryEntry(dictionaryDatabaseEntity: DictionaryDatabaseEntity)
+    suspend fun insertTango(tango: Tango)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertDictionaryDatabaseEntryList(dictionaryDatabaseEntityList: List<DictionaryDatabaseEntity>)
+    suspend fun insertTangoList(tangoList: List<Tango>)
 
-    @Query("SELECT * FROM system_dictionary")
-    suspend fun getDictionaryEntryList(): List<DictionaryDatabaseEntity>
+    @Query("SELECT * FROM tango_table")
+    suspend fun getTangoList(): List<Tango>
 
-    @Query("SELECT * FROM system_dictionary WHERE nodeId = :nodeId")
-    suspend fun getDictionaryEntryListFromNodeId(nodeId: Int): List<DictionaryDatabaseEntity>
+    @Query("SELECT * FROM tango_table WHERE tangoId = :tangoId")
+    suspend fun getTangoListFromTangoId(tangoId: String): Tango
 
-    @Query("DELETE FROM system_dictionary WHERE nodeId = :nodeId")
-    suspend fun deleteDictionaryEntryByNodeId(nodeId: Int)
+    @Query("SELECT * FROM tango_table WHERE tango = :string")
+    fun getTangoFromString(string: String): Tango
+
 
 }

@@ -3,9 +3,9 @@ package com.kazumaproject.kana_kanji_converter.local.system_dictionary.entity
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "system_dictionary")
-data class DictionaryDatabaseEntity(
+@Entity(tableName = "tango_table")
+data class Tango(
+    val tango: String,
     @PrimaryKey(autoGenerate = false)
-    val nodeId: Int,
-    val features: List<D>
+    var tangoId: String,
 )
