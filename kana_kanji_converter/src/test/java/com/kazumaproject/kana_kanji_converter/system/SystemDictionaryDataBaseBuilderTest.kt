@@ -19,6 +19,7 @@ import com.kazumaproject.trie4j.louds.TailLOUDSTrie
 import org.junit.Assert.*
 import com.kazumaproject.trie4j.patricia.TailPatriciaTrie
 import java.util.UUID
+import java.util.concurrent.atomic.AtomicInteger
 
 @RunWith(RobolectricTestRunner::class)
 @Config(assetDir = "src/test/assets")
@@ -96,6 +97,8 @@ class SystemDictionaryDataBaseBuilderTest {
     @Test
     fun `Test build token def with database`() = runBlocking{
 
+        val atomicInteger = AtomicInteger(0)
+
         val list = systemDictionaryBuilder.groupAllDictionaries(
             listOf(
                 "dictionaries/dictionary00.txt",
@@ -123,8 +126,7 @@ class SystemDictionaryDataBaseBuilderTest {
             list.forEach { entry ->
                 val index = yomiTrie.getNodeId(entry.key)
                 val tokenEntryList: List<TokenEntry> = entry.value.map { dictionaryEntry ->
-                    val id = UUID.randomUUID().toString()
-
+                    val id = atomicInteger.incrementAndGet()
                     launch {
                         val tango = Tango(
                             dictionaryEntry.afterConversion,

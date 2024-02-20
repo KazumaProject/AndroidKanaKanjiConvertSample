@@ -10,6 +10,7 @@ import com.kazumaproject.kana_kanji_converter.local.system_dictionary.Dictionary
 import com.kazumaproject.kana_kanji_converter.local.system_dictionary.DictionaryDatabaseConverter
 import com.kazumaproject.kana_kanji_converter.local.system_dictionary.SystemDictionaryDatabase
 import com.kazumaproject.kana_kanji_converter.model.TokenEntry
+import com.kazumaproject.trie4j.doublearray.DoubleArray
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import kotlinx.coroutines.Dispatchers
@@ -49,15 +50,6 @@ class SystemDictionaryLoaderTest {
         println("${loudsTrie.size()}")
         val expected = 1025057
         assertEquals(expected, loudsTrie.size())
-    }
-
-    @Test
-    fun `Test load tango trie`() = runBlocking {
-        val loudsTrie = TailLOUDSTrie()
-        withContext(Dispatchers.IO) {
-            loudsTrie.readExternal(ObjectInputStream(context.assets.open("system_trie/tango.dic")))
-        }
-        println("${loudsTrie.size()}")
     }
 
     @Test
@@ -115,11 +107,38 @@ class SystemDictionaryLoaderTest {
 
     @Test
     fun `Test trie`() = runBlocking {
-        val trie = TailPatriciaTrie()
-        trie.insert("かれー")
-        val loudsTrie = TailLOUDSTrie(trie)
-        val nodeId = loudsTrie.getNodeId("かれー")
-        println(loudsTrie.LOUDSNode(nodeId).letters.joinToString().replace(",","").replace(" ",""))
+        val dictionaryTexts = systemDictionaryBuilder.groupAllDictionaries(
+            listOf(
+                "dictionaries/dictionary00.txt",
+            ),
+            "single_kanji/single_kanji.tsv"
+        )
+        val yomiTrie = TailPatriciaTrie()
+        val tangoTrie = TailPatriciaTrie()
+
+        dictionaryTexts.forEach { entry ->
+            yomiTrie.insert(entry.key)
+            println("insert yomi trie: ${entry.key}")
+
+            entry.value.forEach {
+                tangoTrie.insert(it.afterConversion)
+                println("insert tango trie: ${it.afterConversion}")
+            }
+
+        }
+
+        val yomiLoudsTrie = TailLOUDSTrie(yomiTrie)
+        val tangoLoudsTrie = TailLOUDSTrie(tangoTrie)
+
+        val queryText = "炎症の原因"
+        val nodeIdInTangoTrie = tangoLoudsTrie.getNodeId(queryText)
+
+        println("${yomiLoudsTrie.size()}")
+        println("${tangoLoudsTrie.size()}")
+        
+        val strList = tangoLoudsTrie.LOUDSNode(nodeIdInTangoTrie).letters.joinToString()
+        println(strList)
+
     }
 
 }

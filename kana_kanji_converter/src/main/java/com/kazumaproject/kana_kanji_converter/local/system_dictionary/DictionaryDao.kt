@@ -19,7 +19,7 @@ interface DictionaryDao {
     suspend fun getTangoList(): List<Tango>
 
     @Query("SELECT * FROM tango_table WHERE tangoId = :tangoId")
-    suspend fun getTangoListFromTangoId(tangoId: String): Tango
+    suspend fun getTangoListFromTangoId(tangoId: Int): Tango
 
     @Query("SELECT * FROM tango_table WHERE tango = :string")
     fun getTangoFromString(string: String): Tango

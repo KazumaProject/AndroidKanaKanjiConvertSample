@@ -29,32 +29,35 @@ class MainActivity : AppCompatActivity() {
         val systemDictionaryBuilder = SystemDictionaryBuilder(this)
         val graphBuilder = GraphBuilder()
         val systemDictionaryLoader = SystemDictionaryLoader(this)
-        buildSystemDictionary(systemDictionaryBuilder)
+        //buildSystemDictionary(systemDictionaryBuilder)
         //checkSystemDictionaryDatabaseSize(systemDictionaryBuilder)
         //checkConnectionIdListSize(systemDictionaryBuilder)
 
         val listView = findViewById<ListView>(R.id.sample_list_view)
         val editText = findViewById<EditText>(R.id.sample_edit_text)
-//        Log.d("Loading connectionIds","loading...")
-//        val connectionIds = systemDictionaryBuilder.getConnectionIds()
-//        Log.d("Loading connectionIds","finished... ${connectionIds.size}")
-//
-//        editText.addTextChangedListener {
-//
-//            convertHiraganaToKanjiJob?.cancel()
-//
-//            convertHiraganaToKanjiJob = lifecycleScope.launch {
-//                val yomiTrie = systemDictionaryLoader.loadYomiDic()
-//                val convertedResultInList = graphBuilder.constructGraphAndGetResult(
-//                    queryText = it.toString(),
-//                    yomiTrie = yomiTrie,
-//                    systemDictionaryBuilder = systemDictionaryBuilder,
-//                    connectionIds
-//                )
-//                adapter = ArrayAdapter(this@MainActivity,android.R.layout.simple_list_item_1,convertedResultInList)
-//                listView.adapter = adapter
-//            }
-//        }
+        Log.d("Loading connectionIds","loading...")
+        val connectionIds = systemDictionaryBuilder.getConnectionIds()
+        Log.d("Loading connectionIds","finished... ${connectionIds.size}")
+
+        val tokenArray = systemDictionaryLoader.loadTokenDef()
+
+        editText.addTextChangedListener {
+
+            convertHiraganaToKanjiJob?.cancel()
+
+            convertHiraganaToKanjiJob = lifecycleScope.launch {
+                val yomiTrie = systemDictionaryLoader.loadYomiDic()
+                val convertedResultInList = graphBuilder.constructGraphAndGetResult(
+                    queryText = it.toString(),
+                    yomiTrie = yomiTrie,
+                    systemDictionaryBuilder = systemDictionaryBuilder,
+                    tokenArray,
+                    connectionIds,
+                )
+                adapter = ArrayAdapter(this@MainActivity,android.R.layout.simple_list_item_1,convertedResultInList)
+                listView.adapter = adapter
+            }
+        }
 
     }
 

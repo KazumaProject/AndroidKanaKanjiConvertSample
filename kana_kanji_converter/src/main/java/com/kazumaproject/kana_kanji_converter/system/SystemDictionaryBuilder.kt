@@ -20,6 +20,7 @@ import java.io.InputStreamReader
 import java.io.ObjectInputStream
 import java.io.ObjectOutputStream
 import java.util.UUID
+import java.util.concurrent.atomic.AtomicInteger
 
 class SystemDictionaryBuilder (private val context: Context) {
 
@@ -146,6 +147,8 @@ class SystemDictionaryBuilder (private val context: Context) {
         singleKanjiFileName: String
     ) = CoroutineScope(Dispatchers.IO).launch{
 
+        val atomicInteger = AtomicInteger(0)
+
         val startTime = System.currentTimeMillis()
         val yomiTrie = createYomiTrie(
             dictionaries,
@@ -164,8 +167,6 @@ class SystemDictionaryBuilder (private val context: Context) {
             }
         }
 
-        val tangoLoudsTrie = TailLOUDSTrie(tangoTrie)
-
         val tokenArray: ArrayList<List<TokenEntry>> = arrayListOf()
         for (i in 0 until yomiTrie.nodeSize()){
             tokenArray.add(emptyList())
@@ -175,15 +176,15 @@ class SystemDictionaryBuilder (private val context: Context) {
             groupedList.forEach { entry ->
                 val index = yomiTrie.getNodeId(entry.key)
                 val tokenEntryList: List<TokenEntry> = entry.value.map { dictionaryEntry ->
-                    val id = UUID.randomUUID().toString()
+                    val id = atomicInteger.incrementAndGet()
 
                     launch {
-                        dictionaryDao.insertTango(
-                            Tango(
-                                dictionaryEntry.afterConversion,
-                                id
-                            )
+                        val tango = Tango(
+                            dictionaryEntry.afterConversion,
+                            id
                         )
+                        dictionaryDao.insertTango(tango)
+                        println("insert tango: $tango")
                     }.join()
 
                     return@map TokenEntry(

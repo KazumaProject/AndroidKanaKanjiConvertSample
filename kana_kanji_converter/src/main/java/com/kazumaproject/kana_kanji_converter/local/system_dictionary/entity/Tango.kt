@@ -7,5 +7,5 @@ import androidx.room.PrimaryKey
 data class Tango(
     val tango: String,
     @PrimaryKey(autoGenerate = false)
-    var tangoId: String,
+    var tangoId: Int,
 )
