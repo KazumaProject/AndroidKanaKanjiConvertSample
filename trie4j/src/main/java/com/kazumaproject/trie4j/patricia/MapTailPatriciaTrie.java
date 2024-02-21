@@ -41,21 +41,22 @@ implements MapTrie<T>{
 				getTails());
 	}
 
-	@Override
-	@SuppressWarnings("unchecked")
-	public T insert(String text, T value){
-		MapTailPatriciaTrieNode<T> node = (MapTailPatriciaTrieNode<T>)insert(
-				((TailPatriciaTrieNodeAdapter)super.getRoot()).getNode(), text, 0);
-		T ret = node.getValue();
-		node.setValue(value);
-		return ret;
-	}
 
 	@Override
 	public T get(String word) {
 		MapTailPatriciaTrieNode<T> node = getNode(word);
 		if(node == null) return null;
 		return node.getValue();
+	}
+
+	@Override
+	@SuppressWarnings("unchecked")
+	public T insert(String word, T value) {
+		MapTailPatriciaTrieNode<T> node = (MapTailPatriciaTrieNode<T>)insert(
+				((TailPatriciaTrieNodeAdapter)super.getRoot()).getNode(), word, 0);
+		T ret = node.getValue();
+		node.setValue(value);
+		return ret;
 	}
 
 	@Override

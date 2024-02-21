@@ -3,6 +3,7 @@ package com.kazumaproject.kana_kanji_converter.graph
 import android.util.Log
 import com.kazumaproject.kana_kanji_converter.graph.model.GraphLine
 import com.kazumaproject.kana_kanji_converter.graph.model.GraphNode
+import com.kazumaproject.kana_kanji_converter.graph.model.GraphNodeWithSurface
 import com.kazumaproject.kana_kanji_converter.model.TokenEntry
 import com.kazumaproject.kana_kanji_converter.other.Constants
 import com.kazumaproject.kana_kanji_converter.other.Constants.GRAPH_FILTER_AMOUNT
@@ -30,35 +31,36 @@ class GraphBuilder {
     suspend fun constructGraphAndGetResult(
         queryText: String,
         yomiTrie: TailLOUDSTrie,
-        systemDictionaryBuilder: SystemDictionaryBuilder,
         tokenArray: ArrayList<List<TokenEntry>>,
-        connectionIds: ArrayList<Int>
+        connectionIds: IntArray
     ) : List<String> = CoroutineScope(Dispatchers.IO).async {
 
         val startTime = System.currentTimeMillis()
 
-        val dictionaryDao = systemDictionaryBuilder.getSystemDictionaryDao()
-
         val bos = GraphNode(UUID.randomUUID().toString(),0,"<BOS>",0,0,0)
         val eos = GraphNode(UUID.randomUUID().toString(),0,"<EOS>",0,0,0)
 
-        val nLetterStartList = LinkedList(
-            mutableListOf(
-                mutableListOf(bos)
-            )
-        )
-        val nLetterEndList = LinkedList(
-            mutableListOf(
-                mutableListOf(eos)
-            )
-        )
+        val nLetterStartList = mutableListOf(mutableListOf(GraphNodeWithSurface(
+            id =  bos.id,
+            string = bos.string,
+            nodeId = bos.nodeId,
+            leftId = bos.leftId,
+            rightId = bos.rightId,
+            cost = bos.cost,
+            surface = ""
+        )))
+        val nLetterEndList =  mutableListOf(mutableListOf(GraphNodeWithSurface(
+            id =  eos.id,
+            string = eos.string,
+            nodeId = eos.nodeId,
+            leftId = eos.leftId,
+            rightId = eos.rightId,
+            cost = eos.cost,
+            surface = ""
+        )))
 
-        val nLetterStartListFinal = LinkedList(
-            mutableListOf<List<GraphNode>>()
-        )
-        val nLetterEndListFinal = LinkedList(
-            mutableListOf<List<GraphNode>>()
-        )
+        val nLetterStartListFinal = mutableListOf<List<GraphNode>>()
+        val nLetterEndListFinal = mutableListOf<List<GraphNode>>()
 
         val graph: SimpleDirectedWeightedGraph<GraphNode, GraphLine> = SimpleDirectedWeightedGraph(GraphLine::class.java)
 
@@ -67,8 +69,8 @@ class GraphBuilder {
                 nLetterStartList.add(mutableListOf())
                 nLetterEndList.add(mutableListOf())
             }
-            nLetterStartList[queryText.length + 1].add(GraphNode(UUID.randomUUID().toString(),0,"<EOS>",0,0,0))
-            nLetterEndList[queryText.length + 1].add(GraphNode(UUID.randomUUID().toString(),0,"<EOS>",0,0,0))
+            nLetterStartList[queryText.length + 1].add(GraphNodeWithSurface(UUID.randomUUID().toString(),0,"<EOS>",0,0,0,""))
+            nLetterEndList[queryText.length + 1].add(GraphNodeWithSurface(UUID.randomUUID().toString(),0,"<EOS>",0,0,0,""))
 
             for (i in queryText.indices){
                 for (j in i + 1 .. min(queryText.length,32)){
@@ -77,13 +79,14 @@ class GraphBuilder {
                         val nodeId = yomiTrie.getNodeId(subStr)
                         val dictionaryEntries = tokenArray[nodeId]
                         for (entry in dictionaryEntries){
-                            val word = GraphNode(
+                            val word = GraphNodeWithSurface(
                                 id = UUID.randomUUID().toString(),
-                                string = dictionaryDao.getTangoListFromTangoId(entry.tangoId).tango,
+                                string = entry.tango ?: subStr,
                                 nodeId = nodeId,
                                 cost = entry.cost.toInt(),
                                 leftId = entry.leftId.toInt(),
-                                rightId = entry.rightId.toInt()
+                                rightId = entry.rightId.toInt(),
+                                surface = subStr
                             )
                             nLetterStartList[i + 1].add(word)
                             nLetterEndList[j].add(word)
@@ -109,9 +112,9 @@ class GraphBuilder {
                             val dictionaryEntries = tokenArray[nodeId]
                             dictionaryEntries.map { t ->
                                 GraphNode(
-                                    id = UUID.randomUUID().toString(),
+                                    id = g.id,
                                     nodeId = nodeId,
-                                    string = dictionaryDao.getTangoListFromTangoId(t.tangoId).tango,
+                                    string = t.tango ?: g.surface,
                                     cost = t.cost.toInt(),
                                     leftId = t.leftId.toInt(),
                                     rightId = t.rightId.toInt()
@@ -136,9 +139,9 @@ class GraphBuilder {
                             val dictionaryEntries = tokenArray[nodeId]
                             dictionaryEntries.map { t ->
                                 GraphNode(
-                                    id = UUID.randomUUID().toString(),
+                                    id = g.id,
                                     nodeId = nodeId,
-                                    string = dictionaryDao.getTangoListFromTangoId(t.tangoId).tango,
+                                    string = t.tango ?: g.surface,
                                     cost = t.cost.toInt(),
                                     leftId = t.leftId.toInt(),
                                     rightId = t.rightId.toInt()
@@ -268,10 +271,14 @@ class GraphBuilder {
 
         println("Execution time: $elapsedTime sec")
 
-        return@async getListRemovedBOSandEOS(a)
+        val result = getListRemovedBOSandEOS(a)
             .drop(1)
             .dropLast(1)
             .split(",")
+
+        println("$result")
+
+        return@async result
     }.await()
 
     private suspend fun getListRemovedBOSandEOS(

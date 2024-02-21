@@ -34,8 +34,8 @@ import java.util.List;
 import java.util.NoSuchElementException;
 
 public class TailPatriciaTrie
-extends AbstractTrie
-implements Serializable, Trie{
+		extends AbstractTrie
+		implements Serializable, Trie{
 	public TailPatriciaTrie() {
 		this(new SuffixTrieTailBuilder());
 	}
@@ -416,7 +416,7 @@ implements Serializable, Trie{
 				node.setTailIndex(
 						(count > 0) ? tailBuilder.insert(letters, offset - count, count)
 								: -1
-						);
+				);
 				node.setChildren(newNodeArray(newChild));
 				node.setTerminate(true);
 				size++;
@@ -470,8 +470,8 @@ implements Serializable, Trie{
 					return insert(child, letters, offset);
 				} else{
 					int idx = (offset < lettersLength) ?
-						tailBuilder.insert(letters, offset, lettersLength - offset) :
-						-1;
+							tailBuilder.insert(letters, offset, lettersLength - offset) :
+							-1;
 					TailPatriciaTrieNode newNode = newNode(fc, idx, true);
 					node.addChild(ret.getSecond(), newNode);
 					size++;
@@ -500,7 +500,7 @@ implements Serializable, Trie{
 	}
 
 	private void writeObject(ObjectOutputStream out)
-	throws IOException{
+			throws IOException{
 		trimToSize();
 		out.defaultWriteObject();
 	}

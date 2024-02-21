@@ -29,7 +29,7 @@ class MainActivity : AppCompatActivity() {
         val systemDictionaryBuilder = SystemDictionaryBuilder(this)
         val graphBuilder = GraphBuilder()
         val systemDictionaryLoader = SystemDictionaryLoader(this)
-        //buildSystemDictionary(systemDictionaryBuilder)
+       // buildSystemDictionary(systemDictionaryBuilder)
         //checkSystemDictionaryDatabaseSize(systemDictionaryBuilder)
         //checkConnectionIdListSize(systemDictionaryBuilder)
 
@@ -50,7 +50,6 @@ class MainActivity : AppCompatActivity() {
                 val convertedResultInList = graphBuilder.constructGraphAndGetResult(
                     queryText = it.toString(),
                     yomiTrie = yomiTrie,
-                    systemDictionaryBuilder = systemDictionaryBuilder,
                     tokenArray,
                     connectionIds,
                 )

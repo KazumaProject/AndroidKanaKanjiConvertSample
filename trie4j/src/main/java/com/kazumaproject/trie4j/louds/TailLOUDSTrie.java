@@ -15,12 +15,15 @@
  */
 package com.kazumaproject.trie4j.louds;
 
+import android.util.Log;
+
 import com.kazumaproject.trie4j.AbstractTermIdTrie;
 import com.kazumaproject.trie4j.Node;
 import com.kazumaproject.trie4j.TermIdNode;
 import com.kazumaproject.trie4j.TermIdTrie;
 import com.kazumaproject.trie4j.Trie;
 import com.kazumaproject.trie4j.bv.BytesRank1OnlySuccinctBitVector;
+import com.kazumaproject.trie4j.bv.BytesSuccinctBitVector;
 import com.kazumaproject.trie4j.bv.SuccinctBitVector;
 import com.kazumaproject.trie4j.louds.bvtree.BvTree;
 import com.kazumaproject.trie4j.louds.bvtree.LOUDSBvTree;
@@ -91,7 +94,7 @@ implements Externalizable, TermIdTrie{
 			NodeListener listener){
 		FastBitSet bs = new FastBitSet(orig.size());
 		build(orig, bvTree, tailArrayBuilder, bs, listener);
-		this.term = new BytesRank1OnlySuccinctBitVector(bs.getBytes(), bs.size());
+		this.term = new BytesSuccinctBitVector(bs.getBytes(), bs.size());
 		this.tailArray = tailArrayBuilder.build();
 		this.bvtree.trimToSize();
 	}
@@ -406,7 +409,10 @@ implements Externalizable, TermIdTrie{
 			if(ti != -1){
 				TailCharIterator it = tailArray.newIterator(ti);
 				it.setOffset(ti);
-				while(it.hasNext()) b.append(it.next());
+				while(it.hasNext()) {
+					Log.d("TailLOUDSTrie","append " + it.next());
+					b.append(it.next());
+				}
 			}
 			return b.toString().toCharArray();
 		}

@@ -42,6 +42,7 @@ public interface TermIdTrie extends Trie{
 	 */
 	int getTermId(String text);
 
+
 	/**
 	 * Search texts that is part of query and returns found keys with
 	 * key id.

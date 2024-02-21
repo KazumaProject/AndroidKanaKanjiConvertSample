@@ -5,22 +5,22 @@ import android.util.Log
 import androidx.room.Room
 import com.kazumaproject.kana_kanji_converter.local.system_dictionary.DictionaryDao
 import com.kazumaproject.kana_kanji_converter.local.system_dictionary.SystemDictionaryDatabase
-import com.kazumaproject.kana_kanji_converter.local.system_dictionary.entity.Tango
 import com.kazumaproject.kana_kanji_converter.model.DictionaryEntry
 import com.kazumaproject.kana_kanji_converter.model.TokenEntry
+import com.kazumaproject.kana_kanji_converter.other.hiraToKata
+import com.kazumaproject.trie4j.louds.MapTailLOUDSTrie
+import com.kazumaproject.trie4j.louds.TailLOUDSTrie
+import com.kazumaproject.trie4j.patricia.MapTailPatriciaTrie
 import com.kazumaproject.trie4j.patricia.TailPatriciaTrie
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
-import com.kazumaproject.trie4j.louds.TailLOUDSTrie
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.io.ObjectInputStream
 import java.io.ObjectOutputStream
-import java.util.UUID
-import java.util.concurrent.atomic.AtomicInteger
+import kotlin.coroutines.cancellation.CancellationException
 
 class SystemDictionaryBuilder (private val context: Context) {
 
@@ -147,8 +147,6 @@ class SystemDictionaryBuilder (private val context: Context) {
         singleKanjiFileName: String
     ) = CoroutineScope(Dispatchers.IO).launch{
 
-        val atomicInteger = AtomicInteger(0)
-
         val startTime = System.currentTimeMillis()
         val yomiTrie = createYomiTrie(
             dictionaries,
@@ -159,14 +157,6 @@ class SystemDictionaryBuilder (private val context: Context) {
             singleKanjiFileName
         )
 
-        val tangoTrie = TailPatriciaTrie()
-
-        groupedList.forEach{entry ->
-            entry.value.forEach {
-                tangoTrie.insert(it.afterConversion)
-            }
-        }
-
         val tokenArray: ArrayList<List<TokenEntry>> = arrayListOf()
         for (i in 0 until yomiTrie.nodeSize()){
             tokenArray.add(emptyList())
@@ -175,32 +165,25 @@ class SystemDictionaryBuilder (private val context: Context) {
         launch {
             groupedList.forEach { entry ->
                 val index = yomiTrie.getNodeId(entry.key)
+
+                println("inserted in token array trie")
                 val tokenEntryList: List<TokenEntry> = entry.value.map { dictionaryEntry ->
-                    val id = atomicInteger.incrementAndGet()
-
-                    launch {
-                        val tango = Tango(
-                            dictionaryEntry.afterConversion,
-                            id
-                        )
-                        dictionaryDao.insertTango(tango)
-                        println("insert tango: $tango")
-                    }.join()
-
                     return@map TokenEntry(
                         leftId = dictionaryEntry.leftID.toShort(),
                         rightId = dictionaryEntry.rightID.toShort(),
                         cost = dictionaryEntry.wordCost.toShort(),
-                        tangoId = id
+                        tango = if (dictionaryEntry.afterConversion == dictionaryEntry.surface || dictionaryEntry.surface.hiraToKata() == dictionaryEntry.afterConversion) null else dictionaryEntry.afterConversion,
                     )
                 }
                 tokenArray[index] = tokenEntryList
             }
         }.join()
 
-        Log.d("dictionary entry size","${dictionaryDao.getTangoList().size}")
+        Log.d("build yomi.dic","started...")
         saveYomiTrieInInternalStorage(yomiTrie).join()
+        Log.d("build yomi.dic","finished...")
 
+        Log.d("build token.def","started...")
         launch {
             val outputStream = context.openFileOutput("token.def",Context.MODE_PRIVATE)
             val objectOutputStream = ObjectOutputStream(outputStream)
@@ -214,6 +197,7 @@ class SystemDictionaryBuilder (private val context: Context) {
                 if (e is CancellationException) throw e
             }
         }.join()
+        Log.d("build token.def","finished...")
 
         val endTime = System.currentTimeMillis()
         val elapsedTime = (endTime - startTime) / 1000
@@ -234,7 +218,7 @@ class SystemDictionaryBuilder (private val context: Context) {
     }
 
     private fun saveTangoTrieInInternalStorage(
-        tangoTrie: TailLOUDSTrie,
+        tangoTrie: MapTailLOUDSTrie<String>,
     ) = CoroutineScope(Dispatchers.IO).launch {
         Log.d("tango.dic","started to create tango.dic")
         try {
@@ -246,8 +230,39 @@ class SystemDictionaryBuilder (private val context: Context) {
         Log.d("tango.dic","finished to create tango.dic")
     }
 
+    private fun saveTokenArrayInInternalStorage(
+        tokenTrie: MapTailLOUDSTrie<List<TokenEntry>>,
+    ) = CoroutineScope(Dispatchers.IO).launch {
+        Log.d("token.dic","started to create tango.def")
+        try {
+            val out = context.openFileOutput("token.def", Context.MODE_PRIVATE)
+            tokenTrie.writeExternal(ObjectOutputStream(out))
+        }catch (e: Exception){
+            Log.e("system dic",e.stackTraceToString())
+        }
+        Log.d("token.dic","finished to create tango.def")
+    }
+
     fun closeSystemDictionaryDatabase(){
         systemDictionaryDatabase.close()
+    }
+
+    fun buildConnectionIdWithDoubleTrie() = CoroutineScope(Dispatchers.IO).launch{
+        println("started to build connection.def")
+        val dic = MapTailPatriciaTrie<Short>()
+        val reader = BufferedReader(InputStreamReader(context.assets.open("connection_id/connection_single_column.txt"))).readLines()
+        for (i in reader.indices){
+            launch {
+                val key = i.toString()
+                val value = reader[i].toShort()
+                dic.insert(key,value)
+                println("insert $key $value")
+            }.join()
+        }
+        val loudsTrie = TailLOUDSTrie(dic)
+        val out = context.openFileOutput("connection.def",Context.MODE_PRIVATE)
+        loudsTrie.writeExternal(ObjectOutputStream(out))
+        println("finished to build connection.def")
     }
 
     fun getConnectionIdsFromText(): List<String> {
@@ -257,9 +272,10 @@ class SystemDictionaryBuilder (private val context: Context) {
 
     fun getSystemDictionaryDao(): DictionaryDao = dictionaryDaoForPrepopulate
 
-    fun getConnectionIds(): ArrayList<Int>{
-        val reader = BufferedReader(InputStreamReader(context.assets.open("connection_id/connection_single_column.txt")))
-        return ArrayList(reader.readLines().map { it.toInt() })
+    fun getConnectionIds(): IntArray {
+        val reader =
+            BufferedReader(InputStreamReader(context.assets.open("connection_id/connection_single_column.txt"))).readLines()
+        return reader.map { it.toInt() }.toIntArray()
     }
 
     @Suppress("UNCHECKED_CAST")

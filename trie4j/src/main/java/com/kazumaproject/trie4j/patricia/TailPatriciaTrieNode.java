@@ -106,7 +106,7 @@ implements Serializable{
 		return this;
 	}
 
-	public Pair<TailPatriciaTrieNode, Integer> findNode(char firstChar){
+	public Pair<TailPatriciaTrieNode, Integer> findNode(int firstChar){
 		int end = children.length;
 		if(end > 16){
 			int start = 0;

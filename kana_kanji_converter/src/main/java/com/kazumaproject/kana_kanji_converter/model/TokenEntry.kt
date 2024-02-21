@@ -6,5 +6,5 @@ data class TokenEntry(
     val leftId: Short,
     val rightId: Short,
     val cost: Short,
-    val tangoId: Int
+    val tango: String?,
 ): Serializable

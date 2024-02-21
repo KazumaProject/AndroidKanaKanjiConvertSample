@@ -25,9 +25,13 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import com.kazumaproject.trie4j.doublearray.TailDoubleArray
+import com.kazumaproject.trie4j.louds.MapTailLOUDSTrie
 import com.kazumaproject.trie4j.louds.TailLOUDSTrie
+import com.kazumaproject.trie4j.louds.TailLOUDSTrie.LOUDSNode
+import com.kazumaproject.trie4j.patricia.MapTailPatriciaTrie
 import com.kazumaproject.trie4j.patricia.TailPatriciaTrie
 import java.io.ObjectInputStream
+import java.util.concurrent.atomic.AtomicInteger
 
 @RunWith(RobolectricTestRunner::class)
 @Config(assetDir = "src/test/assets")
@@ -107,6 +111,48 @@ class SystemDictionaryLoaderTest {
 
     @Test
     fun `Test trie`() = runBlocking {
+        val atomicInteger = AtomicInteger()
+
+        val dictionaryTexts = systemDictionaryBuilder.groupAllDictionaries(
+            listOf(
+                "dictionaries/dictionary00.txt",
+            ),
+            "single_kanji/single_kanji.tsv"
+        )
+        val yomiTrie = TailPatriciaTrie()
+        val tangoTrie = MapTailPatriciaTrie<String>()
+
+        dictionaryTexts.forEach { entry ->
+            yomiTrie.insert(entry.key)
+            println("insert yomi trie: ${entry.key}")
+
+            entry.value.forEach {
+                val id = atomicInteger.incrementAndGet().toString()
+                tangoTrie.insert(id,it.afterConversion)
+                println("insert tango trie: $id ${it.afterConversion}")
+            }
+
+        }
+
+        val yomiLoudsTrie = TailLOUDSTrie(yomiTrie)
+        val tangoLoudsTrie = MapTailLOUDSTrie<String>(tangoTrie)
+
+        //40122
+        val queryText = "アイアンと"
+        val nodeIdInTangoTrie = tangoLoudsTrie.get("1")
+
+        println("${yomiLoudsTrie.size()}")
+        println("${tangoLoudsTrie.size()}")
+
+        println("${yomiLoudsTrie.contains("あいあんと")}")
+
+        println(nodeIdInTangoTrie)
+    }
+
+    @Test
+    fun `Test trie2`() = runBlocking {
+        val atomicInteger = AtomicInteger()
+
         val dictionaryTexts = systemDictionaryBuilder.groupAllDictionaries(
             listOf(
                 "dictionaries/dictionary00.txt",
@@ -121,8 +167,9 @@ class SystemDictionaryLoaderTest {
             println("insert yomi trie: ${entry.key}")
 
             entry.value.forEach {
+                val id = atomicInteger.incrementAndGet().toString()
                 tangoTrie.insert(it.afterConversion)
-                println("insert tango trie: ${it.afterConversion}")
+                println("insert tango trie: $id ${it.afterConversion}")
             }
 
         }
@@ -130,15 +177,16 @@ class SystemDictionaryLoaderTest {
         val yomiLoudsTrie = TailLOUDSTrie(yomiTrie)
         val tangoLoudsTrie = TailLOUDSTrie(tangoTrie)
 
-        val queryText = "炎症の原因"
+        //40122
+        val queryText = "アイアンと"
         val nodeIdInTangoTrie = tangoLoudsTrie.getNodeId(queryText)
+
+        val tangoFromNodeId = tangoLoudsTrie.LOUDSNode(nodeIdInTangoTrie).letters.joinToString()
 
         println("${yomiLoudsTrie.size()}")
         println("${tangoLoudsTrie.size()}")
-        
-        val strList = tangoLoudsTrie.LOUDSNode(nodeIdInTangoTrie).letters.joinToString()
-        println(strList)
 
+        println(tangoFromNodeId)
     }
 
 }

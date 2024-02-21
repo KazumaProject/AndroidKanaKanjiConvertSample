@@ -29,7 +29,7 @@ public interface MapTrie<T> extends Trie{
 	 */
 	MapNode<T> getRoot();
 
-	/**
+    /**
 	 * gets the value associated with word.
 	 * @param word word
 	 * @return value. null if word not inserted or inserted with null value.
