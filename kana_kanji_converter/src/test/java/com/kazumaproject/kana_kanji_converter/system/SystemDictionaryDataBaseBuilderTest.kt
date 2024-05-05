@@ -140,7 +140,7 @@ class SystemDictionaryDataBaseBuilderTest {
                         leftId = dictionaryEntry.leftID.toShort(),
                         rightId = dictionaryEntry.rightID.toShort(),
                         cost = dictionaryEntry.wordCost.toShort(),
-                        tangoId = id
+                        tango = dictionaryEntry.afterConversion
                     )
                 }
                 tokenArray[index] = tokenEntryList
@@ -155,8 +155,8 @@ class SystemDictionaryDataBaseBuilderTest {
         val tokens = tokenArray[yomiNodeId]
 
         tokens.forEach { token ->
-            val tangoFromId = dictionaryDao.getTangoListFromTangoId(token.tangoId)
-            println("$tangoFromId")
+            //val tangoFromId = dictionaryDao.getTangoListFromTangoId(token.tangoId)
+            //println("$tangoFromId")
         }
     }
 

@@ -20,7 +20,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
-import org.junit.runner.RunWith
+
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
@@ -179,14 +179,16 @@ class SystemDictionaryLoaderTest {
 
         //40122
         val queryText = "アイアンと"
-        val nodeIdInTangoTrie = tangoLoudsTrie.getNodeId(queryText)
 
-        val tangoFromNodeId = tangoLoudsTrie.LOUDSNode(nodeIdInTangoTrie).letters.joinToString()
 
         println("${yomiLoudsTrie.size()}")
         println("${tangoLoudsTrie.size()}")
 
-        println(tangoFromNodeId)
+        val nodeId = tangoLoudsTrie.getTermId(queryText)
+
+        val a = tangoLoudsTrie.term.select1(tangoLoudsTrie.term.rank0(nodeId))
+        println("${tangoLoudsTrie.LOUDSNode(a).letters.joinToString()}")
+
     }
 
 }

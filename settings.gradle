@@ -14,5 +14,3 @@ dependencyResolutionManagement {
 }
 rootProject.name = "AndroidKanaKanjiConvertSample"
 include ':app'
-include ':kana_kanji_converter'
-include ':trie4j'
